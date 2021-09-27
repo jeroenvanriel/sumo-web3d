@@ -183,7 +183,7 @@ def vehicle_to_dict(vehicle):
 
 
 def light_to_dict(light):
-    """Extract relevant information from traci.trafficlights.getSubscriptionResults."""
+    """Extract relevant information from traci.trafficlight.getSubscriptionResults."""
     return {
         'phase': light[tc.TL_CURRENT_PHASE],
         'programID': light[tc.TL_CURRENT_PROGRAM],
@@ -343,8 +343,8 @@ def start_sumo_executable(gui, sumo_args, sumocfg_file):
     traci.simulation.subscribe()
 
     # Subscribe to all traffic lights. This set of IDs should never change.
-    for light_id in traci.trafficlights.getIDList():
-        traci.trafficlights.subscribe(light_id, [
+    for light_id in traci.trafficlight.getIDList():
+        traci.trafficlight.subscribe(light_id, [
             tc.TL_CURRENT_PHASE,
             tc.TL_CURRENT_PROGRAM
         ])
