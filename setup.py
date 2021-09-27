@@ -13,12 +13,12 @@ setup(
             'sumo-web3d = sumo_web3d.server.server:run',
         ],
     },
-    include_package_data=True,
-    package_data={
-        'static': 'sumo_web3d/static/*',
-        'scenarios': 'sumo_web3d/scenarios/*',
-        'scenarios.json': 'sumo_web3d/scenarios.json'
-    },
+    # include_package_data=True,
+    # package_data={
+    #     'static': 'sumo_web3d/static/*',
+    #     'scenarios': 'sumo_web3d/scenarios/*',
+    #     'scenarios.json': 'sumo_web3d/scenarios.json'
+    # },
     packages=[
         'sumo_web3d',
         'sumo_web3d.server',
