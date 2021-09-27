@@ -13,3 +13,7 @@ node_modules
 
 # MacOS
 .DS_Store
+
+# pyenv setting
+.python-version
+
