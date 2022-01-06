@@ -9,6 +9,7 @@ import os
 import re
 import shlex
 import time
+import xml.etree.ElementTree as ET
 
 from aiohttp import web
 import websockets
@@ -278,10 +279,72 @@ def make_additional_endpoint(paths):
     return handler
 
 
+def parse_fcd():
+    # open file
+    filepath = './fcd.xml'
+    with open(filepath, encoding='utf-8') as f:
+
+        timestep = []
+        print('opening file function')
+
+        for event, elem in ET.iterparse(f):
+            if elem.tag == 'vehicle' and event == 'end':
+                timestep.append(elem)
+
+            elif elem.tag == 'timestep' and event == 'end':
+                yield [vehicle.attrib for vehicle in timestep]
+                timestep = []
+
+
+def read_fcd_vehicle(vehicle):
+    return {
+        'x': float(vehicle['x']),
+        'y': float(vehicle['y']),
+        'z': 0,
+        'speed': float(vehicle['speed']),
+        'angle': 10,
+        'type': "passenger2a",
+        'length': 4.5,
+        'width': 1.8,
+        'signals': 0,
+        'vClass': 'passenger',
+    }
+
+
+
+def read_next_step(timestep):
+    global last_lights, last_vehicles
+
+    start_secs = time.time()
+    end_sim_secs = time.time()
+
+    vehicles = {vehicle['id']: read_fcd_vehicle(vehicle) for vehicle in timestep}
+    vehicle_counts = Counter(v['vClass'] for veh_id, v in vehicles.items())
+
+    vehicles_update = diff_dicts(last_vehicles, vehicles)
+
+    end_update_secs = time.time()
+
+    snapshot = {
+        'time': traci.simulation.getCurrentTime(),
+        'vehicles': vehicles_update,
+        # 'lights': lights_update,
+        'vehicle_counts': vehicle_counts,
+        'simulate_secs': end_sim_secs - start_secs,
+        'snapshot_secs': end_update_secs - end_sim_secs
+    }
+    last_vehicles = vehicles
+    return snapshot
+
+
 async def run_simulation(websocket):
+    global fcd_parser
+    fcd_parser = parse_fcd()
+
     while True:
         if simulation_status is STATUS_RUNNING:
-            snapshot = simulate_next_step()
+            # snapshot = simulate_next_step()
+            snapshot = read_next_step(next(fcd_parser))
             snapshot['type'] = 'snapshot'
             await websocket.send(json.dumps(snapshot))
             await asyncio.sleep(delay_length_ms / 1000)
