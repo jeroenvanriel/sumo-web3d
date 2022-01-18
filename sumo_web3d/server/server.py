@@ -307,7 +307,7 @@ def read_fcd_vehicle(vehicle):
         'y': float(vehicle['y']),
         'z': 0,
         'speed': float(vehicle['speed']),
-        'angle': 10,
+        'angle': vehicle['angle'],
         'type': "passenger2a",
         'length': 4.5,
         'width': 1.8,
