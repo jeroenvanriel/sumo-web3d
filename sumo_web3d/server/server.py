@@ -280,10 +280,14 @@ def make_additional_endpoint(paths):
 
 
 def parse_fcd():
+    """Generator function that reads floating car data (fcd) file
+    in XML format timestep per timestep."""
+
     # open file
     filepath = './fcd.xml'
     with open(filepath, encoding='utf-8') as f:
 
+        # buffer containing vehicle locations per timestep
         timestep = []
         print('opening file function')
 
@@ -292,6 +296,7 @@ def parse_fcd():
                 timestep.append(elem)
 
             elif elem.tag == 'timestep' and event == 'end':
+                # output the buffered vehicle data
                 yield [vehicle.attrib for vehicle in timestep]
                 timestep = []
 
@@ -311,8 +316,11 @@ def read_fcd_vehicle(vehicle):
     }
 
 
-
 def read_next_step(timestep):
+    """Given a list of vehicle data, produce a snapshot to be send to
+    the frontend. Use this function instead of simulate_next_step in
+    case the simulation has been prerecorded."""
+
     global last_lights, last_vehicles
 
     start_secs = time.time()
@@ -330,7 +338,7 @@ def read_next_step(timestep):
         'vehicles': vehicles_update,
         # 'lights': lights_update,
         'vehicle_counts': vehicle_counts,
-        'simulate_secs': end_sim_secs - start_secs,
+        'simulate_secs': end_sim_secs - start_secs, # currently this yields near 0
         'snapshot_secs': end_update_secs - end_sim_secs
     }
     last_vehicles = vehicles
