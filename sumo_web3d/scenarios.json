@@ -29,5 +29,11 @@
         "name": "person_number",
         "description": "Demonstration of a person gettin on and off the bus",
         "config_file": "scenarios/person_number/person_number.sumocfg"
+    },
+    {
+        "name": "simple-crossing",
+        "description": "Simple crossing with traffic lights",
+        "config_file": "scenarios/simple-crossing/simple.sumocfg",
+        "fcd_file": "scenarios/simple-crossing/fcd.xml"
     }
 ]
