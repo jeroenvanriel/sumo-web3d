@@ -28,6 +28,12 @@ python sumo_web3d.py
 ```
 and navigating to `http:localhost:5000/simple-crossing/` (note trailing slash).
 
+## Timing
+
+As described in the [SUMO documenation](https://sumo.dlr.de/docs/Simulation/Basic_Definition.html#defining_the_time_step_length), the default time step is 1 second.
+The visualization may become smoother when a smaller time step is being used.
+When the simulation is live, we can for example provide SUMO with `--step-lenght 0.01` as argument.
+This may also be done when recording a simulation to a fcd file.
 
 ## Offline running of recorded simulation
 Currently, we start SUMO even if we are playing a prerecorded simulation and we use `traci.simulation.getCurrentTime()` while creating the snapshot.
