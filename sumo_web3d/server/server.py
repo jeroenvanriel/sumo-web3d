@@ -302,8 +302,8 @@ def parse_fcd(fcd_file):
                 timestep.append(elem)
 
             elif elem.tag == 'timestep' and event == 'end':
-                # output the buffered vehicle data
-                yield [vehicle.attrib for vehicle in timestep]
+                # output (timestep, buffered vehicle data attributes)
+                yield elem.attrib['time'], [vehicle.attrib for vehicle in timestep]
                 timestep = []
 
 
@@ -322,7 +322,7 @@ def read_fcd_vehicle(vehicle):
     }
 
 
-def read_next_step(timestep):
+def read_next_step(timestep, vehicles):
     """Given a list of vehicle data, produce a snapshot to be send to
     the frontend. Use this function instead of simulate_next_step in
     case the simulation has been prerecorded."""
@@ -332,7 +332,7 @@ def read_next_step(timestep):
     start_secs = time.time()
     end_sim_secs = time.time()
 
-    vehicles = {vehicle['id']: read_fcd_vehicle(vehicle) for vehicle in timestep}
+    vehicles = {vehicle['id']: read_fcd_vehicle(vehicle) for vehicle in vehicles}
     vehicle_counts = Counter(v['vClass'] for veh_id, v in vehicles.items())
 
     vehicles_update = diff_dicts(last_vehicles, vehicles)
@@ -340,7 +340,9 @@ def read_next_step(timestep):
     end_update_secs = time.time()
 
     snapshot = {
-        'time': traci.simulation.getCurrentTime(),
+        # 'time': traci.simulation.getCurrentTime(), # previously 
+        # we want recorded (fcd) simulations to run offline
+        'time': str(float(timestep) * 1000), # frontend assumes milliseconds
         'vehicles': vehicles_update,
         # 'lights': lights_update,
         'vehicle_counts': vehicle_counts,
@@ -392,7 +394,7 @@ async def websocket_simulation_control(sumo_start_fn, task, websocket, path):
             msg = json.loads(raw_msg)
             if msg['type'] == 'action':
                 if msg['action'] == 'start':
-                    sumo_start_fn()
+                    sumo_start_fn() # TODO: not necessary when running recorded simulation
                     simulation_status = STATUS_RUNNING
                     loop = asyncio.get_event_loop()
                     task = loop.create_task(run_simulation(websocket))
