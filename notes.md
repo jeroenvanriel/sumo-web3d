@@ -7,7 +7,7 @@ It also shows how to open `sumo-gui` from `netedit` to create the configuration 
 After you have verified that the simulation runs in `sumo-gui`, use the command `sumo -c simple.sumocfg --fcd-output fcd.xml` to create a floating car data export, see [FCDOutput](https://sumo.dlr.de/docs/Simulation/Output/FCDOutput.html).
 
 Configuration files for a specific scenario are kept in a separate folder like `sumo_web3d/scenarios/simple-crossing/`.
-These files must be referenced appropriately in the `./scenarios.json` file.
+These files must be referenced appropriately in the `./sumo_web3d/scenarios.json` file.
 To include our newly created example, add the following entry:
 ```
     {
