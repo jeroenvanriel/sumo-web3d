@@ -116,6 +116,12 @@ class Scenario(object):
         config_dir = os.path.dirname(sumocfg_file)
         config = xmltodict.parse(open(sumocfg_file).read(), attr_prefix='')['configuration']
         net_file, additional_files, settings_file = parse_config_file(config_dir, config)
+
+        # recorded simulation
+        fcd_file = scenarios_json.get('fcd_file')
+        if fcd_file:
+            fcd_file = os.path.join(DIR, os.path.expanduser(os.path.expandvars(fcd_file)))
+
         additionals = {} if additional_files else None
         if additional_files:
             for xml in [parse_xml_file(f) for f in additional_files]:
@@ -137,10 +143,11 @@ class Scenario(object):
             parse_xml_file(net_file),
             additionals,
             settings,
-            water
+            water,
+            fcd_file
         )
 
-    def __init__(self, config_file, name, is_default, network, additional, settings, water):
+    def __init__(self, config_file, name, is_default, network, additional, settings, water, fcd_file):
         self.config_file = config_file
         self.display_name = name
         self.name = to_kebab_case(name)
@@ -149,6 +156,7 @@ class Scenario(object):
         self.additional = additional
         self.settings = settings
         self.water = water
+        self.fcd_file = fcd_file
 
 
 def person_to_dict(person):
@@ -279,17 +287,15 @@ def make_additional_endpoint(paths):
     return handler
 
 
-def parse_fcd():
+def parse_fcd(fcd_file):
     """Generator function that reads floating car data (fcd) file
     in XML format timestep per timestep."""
 
     # open file
-    filepath = './fcd.xml'
-    with open(filepath, encoding='utf-8') as f:
+    with open(fcd_file, encoding='utf-8') as f:
 
         # buffer containing vehicle locations per timestep
         timestep = []
-        print('opening file function')
 
         for event, elem in ET.iterparse(f):
             if elem.tag == 'vehicle' and event == 'end':
@@ -346,13 +352,19 @@ def read_next_step(timestep):
 
 
 async def run_simulation(websocket):
-    global fcd_parser
-    fcd_parser = parse_fcd()
+    global current_scenario
+    if current_scenario.fcd_file:
+        fcd_parser = parse_fcd(current_scenario.fcd_file)
 
     while True:
         if simulation_status is STATUS_RUNNING:
-            # snapshot = simulate_next_step()
-            snapshot = read_next_step(next(fcd_parser))
+            if current_scenario.fcd_file:
+                # read recorded simulation
+                snapshot = read_next_step(next(fcd_parser))
+            else:
+                # get next step from running sumo executable
+                snapshot = simulate_next_step()
+            
             snapshot['type'] = 'snapshot'
             await websocket.send(json.dumps(snapshot))
             await asyncio.sleep(delay_length_ms / 1000)
