@@ -362,7 +362,8 @@ async def run_simulation(websocket):
         if simulation_status is STATUS_RUNNING:
             if current_scenario.fcd_file:
                 # read recorded simulation
-                snapshot = read_next_step(next(fcd_parser))
+                timestep, vehicles = next(fcd_parser)
+                snapshot = read_next_step(timestep, vehicles)
             else:
                 # get next step from running sumo executable
                 snapshot = simulate_next_step()
