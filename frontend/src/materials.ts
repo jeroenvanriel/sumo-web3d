@@ -15,9 +15,12 @@ const railroadTie = loadRepeatedTexture('/rail64.png');
 const sidewalkTexture = loadRepeatedTexture('/sidewalk256.jpg');
 const asphaltTexture = loadRepeatedTexture('/asphalt256.jpg');
 const crossingTexture = loadRepeatedTexture('/zebra.jpg');
+const grassTexture = loadRepeatedTexture('/grass/GrassGreenTexture0001.jpg')
+grassTexture.repeat.set(100,100);
 
 export const LAND = new three.MeshPhysicalMaterial({
-  color: 0x888888,
+  map: grassTexture,
+  // color: 0x88ff88,
   metalness: 0.1,
   roughness: 1.0,
   clearCoat: 0.1,
