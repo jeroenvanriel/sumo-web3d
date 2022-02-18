@@ -78,11 +78,11 @@ export default function createStore(init: InitResources) {
         exit: vehicleId => sumo3d.removeVehicleObject(vehicleId),
       });
 
-      processDelta(msg.lights, {
-        enter: (lightId, delta) => sumo3d.updateLightObject(lightId, delta),
-        update: (lightId, delta) => sumo3d.updateLightObject(lightId, delta),
-        exit: id => console.warn('Disappearing traffic lights!', id),
-      });
+      // processDelta(msg.lights, {
+      //   enter: (lightId, delta) => sumo3d.updateLightObject(lightId, delta),
+      //   update: (lightId, delta) => sumo3d.updateLightObject(lightId, delta),
+      //   exit: id => console.warn('Disappearing traffic lights!', id),
+      // });
       if (state.clickedVehicleId) {
         state.clickedVehicleInfo = sumo3d.getVehicleInfo(state.clickedVehicleId);
       }

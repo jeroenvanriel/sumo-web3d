@@ -368,7 +368,13 @@ export function makeStaticObjects(
   t: Transform,
 ): [three.Group, OsmIdToMesh] {
   const group = new three.Group();
-  const [left, top, right, bottom] = network.net.location.convBoundary.split(',').map(Number);
+  let [left, top, right, bottom] = network.net.location.convBoundary.split(',').map(Number);
+
+  // We add some small padding by default to support networks having
+  // zero-width/height.
+  const padding = 10;
+  top -= padding; bottom += padding;
+  left-= padding; right += padding;
 
   // Land mesh
   const bgMesh = flatRectMesh({left, top, right, bottom}, materials.LAND);

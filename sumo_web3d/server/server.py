@@ -9,6 +9,7 @@ import os
 import re
 import shlex
 import time
+import xml.etree.ElementTree as ET
 
 from aiohttp import web
 import websockets
@@ -115,6 +116,12 @@ class Scenario(object):
         config_dir = os.path.dirname(sumocfg_file)
         config = xmltodict.parse(open(sumocfg_file).read(), attr_prefix='')['configuration']
         net_file, additional_files, settings_file = parse_config_file(config_dir, config)
+
+        # recorded simulation
+        fcd_file = scenarios_json.get('fcd_file')
+        if fcd_file:
+            fcd_file = os.path.join(DIR, os.path.expanduser(os.path.expandvars(fcd_file)))
+
         additionals = {} if additional_files else None
         if additional_files:
             for xml in [parse_xml_file(f) for f in additional_files]:
@@ -136,10 +143,11 @@ class Scenario(object):
             parse_xml_file(net_file),
             additionals,
             settings,
-            water
+            water,
+            fcd_file
         )
 
-    def __init__(self, config_file, name, is_default, network, additional, settings, water):
+    def __init__(self, config_file, name, is_default, network, additional, settings, water, fcd_file):
         self.config_file = config_file
         self.display_name = name
         self.name = to_kebab_case(name)
@@ -148,6 +156,7 @@ class Scenario(object):
         self.additional = additional
         self.settings = settings
         self.water = water
+        self.fcd_file = fcd_file
 
 
 def person_to_dict(person):
@@ -278,10 +287,87 @@ def make_additional_endpoint(paths):
     return handler
 
 
+def parse_fcd(fcd_file):
+    """Generator function that reads floating car data (fcd) file
+    in XML format timestep per timestep."""
+
+    # open file
+    with open(fcd_file, encoding='utf-8') as f:
+
+        # buffer containing vehicle locations per timestep
+        timestep = []
+
+        for event, elem in ET.iterparse(f):
+            if elem.tag == 'vehicle' and event == 'end':
+                timestep.append(elem)
+
+            elif elem.tag == 'timestep' and event == 'end':
+                # output (timestep, buffered vehicle data attributes)
+                yield elem.attrib['time'], [vehicle.attrib for vehicle in timestep]
+                timestep = []
+
+
+def read_fcd_vehicle(vehicle):
+    return {
+        'x': float(vehicle['x']),
+        'y': float(vehicle['y']),
+        'z': 0,
+        'speed': float(vehicle['speed']),
+        'angle': vehicle['angle'],
+        'type': "passenger2a",
+        'length': 4.5,
+        'width': 1.8,
+        'signals': 0,
+        'vClass': 'passenger',
+    }
+
+
+def read_next_step(timestep, vehicles):
+    """Given a list of vehicle data, produce a snapshot to be send to
+    the frontend. Use this function instead of simulate_next_step in
+    case the simulation has been prerecorded."""
+
+    global last_lights, last_vehicles
+
+    start_secs = time.time()
+    end_sim_secs = time.time()
+
+    vehicles = {vehicle['id']: read_fcd_vehicle(vehicle) for vehicle in vehicles}
+    vehicle_counts = Counter(v['vClass'] for veh_id, v in vehicles.items())
+
+    vehicles_update = diff_dicts(last_vehicles, vehicles)
+
+    end_update_secs = time.time()
+
+    snapshot = {
+        # 'time': traci.simulation.getCurrentTime(), # previously 
+        # we want recorded (fcd) simulations to run offline
+        'time': str(float(timestep) * 1000), # frontend assumes milliseconds
+        'vehicles': vehicles_update,
+        # 'lights': lights_update,
+        'vehicle_counts': vehicle_counts,
+        'simulate_secs': end_sim_secs - start_secs, # currently this yields near 0
+        'snapshot_secs': end_update_secs - end_sim_secs
+    }
+    last_vehicles = vehicles
+    return snapshot
+
+
 async def run_simulation(websocket):
+    global current_scenario
+    if current_scenario.fcd_file:
+        fcd_parser = parse_fcd(current_scenario.fcd_file)
+
     while True:
         if simulation_status is STATUS_RUNNING:
-            snapshot = simulate_next_step()
+            if current_scenario.fcd_file:
+                # read recorded simulation
+                timestep, vehicles = next(fcd_parser)
+                snapshot = read_next_step(timestep, vehicles)
+            else:
+                # get next step from running sumo executable
+                snapshot = simulate_next_step()
+            
             snapshot['type'] = 'snapshot'
             await websocket.send(json.dumps(snapshot))
             await asyncio.sleep(delay_length_ms / 1000)
@@ -309,7 +395,7 @@ async def websocket_simulation_control(sumo_start_fn, task, websocket, path):
             msg = json.loads(raw_msg)
             if msg['type'] == 'action':
                 if msg['action'] == 'start':
-                    sumo_start_fn()
+                    sumo_start_fn() # TODO: not necessary when running recorded simulation
                     simulation_status = STATUS_RUNNING
                     loop = asyncio.get_event_loop()
                     task = loop.create_task(run_simulation(websocket))

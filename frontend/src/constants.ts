@@ -22,10 +22,22 @@ function ogaVehicle(type: string, color: string): Object3DLoaderParam {
   };
 }
 
+const CGT_SCALE = 1.2;
+const CGT_COLORS = ['red', 'black', 'brown', 'orange', 'white'];
+
+function cgtVehicle(color: string): Object3DLoaderParam {
+  return {
+    objectUrl: `/vehicles-new/clio_${color}.obj`,
+    materialUrl: `/vehicles-new/clio_${color}.mtl`,
+    scale: CGT_SCALE,
+  };
+}
+
 export const SUPPORTED_VEHICLE_CLASSES: {[sumoVehicleClass: string]: SupportedVehicle} = {
   passenger: {
     label: 'car',
-    models: _.flatMap(OGA_TYPES, type => _.map(OGA_COLORS, color => ogaVehicle(type, color))),
+    // models: _.flatMap(OGA_TYPES, type => _.map(OGA_COLORS, color => ogaVehicle(type, color))),
+    models: _.map(CGT_COLORS, color => cgtVehicle(color)),
   },
   bicycle: {
     label: 'bike',
