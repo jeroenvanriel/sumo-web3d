@@ -11,7 +11,7 @@ import {createXAxisRotationMatrix4, rotateInWorldSpace} from './utils';
 
 // degrees of rotation per keydown event
 const VELOCITY = 5;
-const VELOCITY_RAD = three.Math.degToRad(VELOCITY);
+const VELOCITY_RAD = three.MathUtils.degToRad(VELOCITY);
 const UP_ROTATE = createXAxisRotationMatrix4(VELOCITY_RAD);
 const DOWN_ROTATE = createXAxisRotationMatrix4(-VELOCITY_RAD);
 
@@ -111,7 +111,7 @@ export default class PanAndRotateControls {
     }
   }
 
-  onMouseWheel(event: MouseWheelEvent) {
+  onMouseWheel(event: WheelEvent) {
     event.preventDefault();
     this.zoom(event.deltaY);
     return true;
