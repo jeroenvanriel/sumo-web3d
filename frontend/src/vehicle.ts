@@ -18,7 +18,7 @@ export default class Vehicle {
   // TODO (Ananta): the frontend shouldn't need to retain a copy of all vehicle info.
   // Make it as lightweight as possible
   public vehicleInfo: VehicleInfo;
-  public mesh: three.Group | three.Mesh;
+  public mesh: three.Group | three.Object3D | three.Mesh;
 
   static fromInfo(
     vClassObjects: {[vClass: string]: three.Object3D[]},
@@ -36,7 +36,7 @@ export default class Vehicle {
     return new Vehicle(mesh, vehicleId, info);
   }
 
-  private constructor(mesh: three.Object3D, vehicleId: string, info: VehicleInfo) {
+  private constructor(mesh: three.Group | three.Object3D | three.Mesh, vehicleId: string, info: VehicleInfo) {
     mesh.name = vehicleId;
     mesh.userData = {
       type: info.type,
