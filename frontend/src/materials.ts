@@ -57,7 +57,7 @@ export const BUILDING_SIDE = new three.MeshPhysicalMaterial({
   reflectivity: 0.2,
 });
 
-export const BUILDING = new three.MeshFaceMaterial([BUILDING_TOP, BUILDING_SIDE]);
+export const BUILDING = [BUILDING_TOP, BUILDING_SIDE];
 
 export const ROAD = new three.MeshPhysicalMaterial({
   map: asphaltTexture,
