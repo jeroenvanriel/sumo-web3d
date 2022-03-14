@@ -89,7 +89,8 @@ export default class FollowVehicleControls {
   }
 
   update() {
-    const objectPosition = this.object.getWorldPosition().clone();
+    const objectPosition = new three.Vector3();
+    this.object.getWorldPosition(objectPosition);
     this.camera.position.copy(objectPosition.add(perspectiveVectorToThreeVector(this.vector)));
     this.camera.lookAt(this.object.position);
   }

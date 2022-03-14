@@ -68,7 +68,8 @@ function convertMeshToMeshAndPosition(mesh: three.Mesh) {
   }
   let position = null;
   if (mesh.geometry.boundingBox) {
-    position = mesh.geometry.boundingBox.getCenter();
+    const position = new three.Vector3(); 
+    mesh.geometry.boundingBox.getCenter(position);
   }
   return {mesh, position};
 }
