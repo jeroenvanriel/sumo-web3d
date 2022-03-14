@@ -39,6 +39,10 @@ This may also be done when recording a simulation to a fcd file.
 Currently, we start SUMO even if we are playing a prerecorded simulation and we use `traci.simulation.getCurrentTime()` while creating the snapshot.
 This is not necessary, because the timing is already handled in the Python script itself.
 
+Demo of parsing:
+
+![parsing demo](figures/parsing_demo.gif)
+
 ## Traffic light exporting
 
 However, SUMO supports several modes of actuated traffic lights, as described in [Traffic Lights](https://sumo.dlr.de/docs/Simulation/Output/FCDOutput.html).
@@ -51,3 +55,21 @@ When controlling the traffic lights via Traci, we could keep track of the states
 The default SUMO config files support polygons and points of interest (POIs), see [Shapes](https://sumo.dlr.de/docs/Simulation/Shapes.html).
 Simply [using the netedit tool](https://sumo.dlr.de/docs/Netedit/elementsShape.html) allows one to draw polygons that represent buildings or lakes, for example.
 It is also possible to import these features from external sources such as OpenStreetMap.
+
+## Polyline
+
+The `lineString()` functions takes a number of points and connects them with a triangulated mesh to represent roads.
+It uses the [extrude-polyline](https://github.com/mattdesl/extrude-polyline) package.
+The `join` and `cap` parameters can be used to control the appearance of the created polyline.
+
+For example, `cap='square'` gives:
+
+![cap='square' bad example](figures/2022-03-14-17-48-37.png)
+
+Compare this to `cap='butt'`, which gives:
+
+![cap='butt' good example](figures/2022-03-14-17-46-58.png)
+
+However, it may also produce situations like:
+
+![cap='butt' bad example](figures/2022-03-14-18-00-02.png)
