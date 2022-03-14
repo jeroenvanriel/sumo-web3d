@@ -21,8 +21,8 @@ function onScroll(vector: PerspectiveVector, event: WheelEvent) {
 }
 
 function createOrbitKeyDown(angle: number) {
-  const leftRotate = createYAxisRotationMatrix3(three.Math.degToRad(5));
-  const rightRotate = createYAxisRotationMatrix3(three.Math.degToRad(-5));
+  const leftRotate = createYAxisRotationMatrix3(three.MathUtils.degToRad(5));
+  const rightRotate = createYAxisRotationMatrix3(three.MathUtils.degToRad(-5));
 
   return (vector: PerspectiveVector, event: KeyboardEvent) => {
     event.preventDefault();
