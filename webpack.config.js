@@ -34,10 +34,6 @@ module.exports = {
           presets: ['react', 'es2015'],
         },
       },
-      {
-        test: /\.json$/,
-        loader: 'json-loader',
-      },
     ],
   },
   // Currently we need to add '.ts' to the resolve.extensions array.
