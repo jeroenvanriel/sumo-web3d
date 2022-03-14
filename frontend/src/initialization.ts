@@ -133,7 +133,7 @@ export default async function init(): Promise<InitResources> {
 
   const domPromise = new Promise((resolve, reject) => {
     if (document.readyState !== 'loading') {
-      resolve();
+      resolve(true);
     } else {
       window.addEventListener('DOMContentLoaded', resolve);
     }
