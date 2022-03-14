@@ -2,6 +2,7 @@ const path = require('path');
 const webpack = require('webpack');
 
 module.exports = {
+  mode: 'development',
   entry: {
     index: __dirname + '/frontend/src/index.tsx',
   },
@@ -9,18 +10,18 @@ module.exports = {
     path: __dirname + '/sumo_web3d/static',
     filename: '[name].bundle.js',
   },
-  devtool: '#cheap-module-source-map',
+  devtool: 'inline-source-map',
   module: {
-    preLoaders: [
+    rules: [
       {
         test: /\.js$/,
+        enforce: "pre",
         loader: 'source-map-loader',
       },
-    ],
-    loaders: [
       {
         test: /\.tsx?$/,
-        loader: 'awesome-typescript-loader',
+        exclude: /node_modules/,
+        loader: 'ts-loader',
         options: {
           transpileOnly: true,
         },
@@ -29,7 +30,7 @@ module.exports = {
         test: /\.jsx?$/,
         exclude: /node_modules/,
         loader: 'babel',
-        query: {
+        options: {
           presets: ['react', 'es2015'],
         },
       },
@@ -42,9 +43,9 @@ module.exports = {
   // Currently we need to add '.ts' to the resolve.extensions array.
   resolve: {
     extensions: ['', '.ts', '.tsx', '.webpack.js', '.web.js', '.js', '.jsx', '.json'],
-    root: path.resolve('./node_modules'),
+    roots: [ path.resolve('./node_modules') ],
   },
   resolveLoader: {
-    root: path.resolve('./node_modules'),
+    roots: [ path.resolve('./node_modules') ],
   },
 }
