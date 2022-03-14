@@ -94,8 +94,8 @@ export function pointCameraAtScene(camera: three.PerspectiveCamera, scene: three
   // Move the camera away from this angle, 30 degrees off the ground.
   const {x, y, z} = position;
   const groundCenter = new three.Vector3(x, 0, z);
-  const theta = three.Math.degToRad(180 + cameraAngle);
-  const phi = three.Math.degToRad(60); // 60 degrees from vertical, i.e. 30 degs off the ground.
+  const theta = three.MathUtils.degToRad(180 + cameraAngle);
+  const phi = three.MathUtils.degToRad(60); // 60 degrees from vertical, i.e. 30 degs off the ground.
   const radius = y;
   const offset = new three.Vector3();
   offset.x = radius * Math.sin(phi) * Math.cos(theta);
