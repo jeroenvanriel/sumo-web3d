@@ -179,7 +179,7 @@ export function lineString(
   points: number[][],
   transform: Transform,
   params: LineParams,
-): three.Geometry {
+): three.BufferGeometry {
   const simplicialComplex = extrudePolyline({
     thickness: params.width,
     // TODO(danvk): figure out what good values for cap/join/miterLimit are.
@@ -233,7 +233,7 @@ function polygonToShape(coordinates: number[][][]): three.Shape {
 }
 
 /** Convert a GeoJSON feature toa  three.js Geometry */
-export function featureToGeometry(feature: Feature): three.Geometry {
+export function featureToGeometry(feature: Feature): three.BufferGeometry {
   const geometry = feature.geometry;
   if (geometry.type === 'MultiPolygon') {
     const coordinates: number[][][][] = geometry.coordinates;

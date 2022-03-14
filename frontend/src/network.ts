@@ -21,6 +21,8 @@ import {
 
 import {forceArray, makeLookup, FeatureCollection} from './utils';
 
+import { BufferGeometry } from 'three';
+
 const DEFAULT_LANE_WIDTH_M = 3.2;
 const LEVEL_HEIGHT_METERS = 3; // how tall is each floor of a building?
 
@@ -79,7 +81,7 @@ function indexAllowedClasses(allow?: string): ClassLookup {
   return makeLookup((allow || '').split(' '));
 }
 
-function laneToGeometry(transform: Transform, edge: Edge, lane: Lane): three.Geometry {
+function laneToGeometry(transform: Transform, edge: Edge, lane: Lane): three.BufferGeometry {
   const coords = parseShape(lane.shape);
   const width = lane.width ? Number(lane.width) : DEFAULT_LANE_WIDTH_M;
   const uScaleFactor = 1;
@@ -190,7 +192,7 @@ function makeMergedEdgeGeometry(network: Network, t: Transform) {
 
 function makeMergedJunctions(network: Network, t: Transform): three.Mesh {
   const material = materials.JUNCTION;
-  const geometry = new three.Geometry();
+  const geometry = new three.BufferGeometry();
   for (const junction of network.net.junction) {
     if (junction.type === 'internal') continue;
     const points = parseShape(junction.shape).map(pt => t.xyToXz(pt));
@@ -268,7 +270,7 @@ function makePolygon(polygon: Polygon, t: Transform): three.Mesh | null {
 }
 
 function makeMergedPolygons(polygons: Polygon[], t: Transform): three.Mesh {
-  const geometry = new three.Geometry();
+  const geometry = new three.BufferGeometry();
   for (const polygon of polygons) {
     const obj = makePolygon(polygon, t);
     if (obj) {
@@ -308,7 +310,7 @@ function makeBusStop(busStop: BusStop, lane: Lane, t: Transform): three.Mesh {
 }
 
 function makeMergedBusStops(network: Network, busStops: BusStop[], t: Transform): three.Mesh {
-  const geometry = new three.Geometry();
+  const geometry = new three.BufferGeometry();
   // Index the lanes.
   const idToLane: {[laneId: string]: Lane} = {};
   for (const edge of network.net.edge) {
@@ -331,7 +333,7 @@ function makeMergedBusStops(network: Network, busStops: BusStop[], t: Transform)
 }
 
 function makeMergedLakes(lakes: FeatureCollection, t: Transform): three.Mesh {
-  const geometry = new three.Geometry();
+  const geometry = new three.BufferGeometry();
   for (const feature of lakes.features) {
     feature.geometry.coordinates.forEach((c: number[][]) => {
       for (let i = 0; i < c.length; i++) {
