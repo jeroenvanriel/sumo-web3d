@@ -159,7 +159,7 @@ export function extrudedMeshFromVertices(
 ) {
   const shape = shapeFromVertices(vertices);
   const geometry = new three.ExtrudeGeometry(shape, {
-    amount: height,
+    depth: height,
     bevelEnabled: false,
   });
   addUVMappingToExtrudedGeometry(geometry, vertices, topBottomUVScale, sideUVScale);
