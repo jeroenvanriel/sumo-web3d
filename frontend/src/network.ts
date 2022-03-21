@@ -202,7 +202,7 @@ function makeMergedEdgeGeometry(network: Network, t: Transform) {
 
 function makeMergedJunctions(network: Network, t: Transform): three.Mesh {
   const material = materials.JUNCTION;
-  const geometry = new three.BufferGeometry();
+  let geometries : BufferGeometry[] = [];
   for (const junction of network.net.junction) {
     if (junction.type === 'internal') continue;
     const points = parseShape(junction.shape).map(pt => t.xyToXz(pt));
@@ -232,9 +232,10 @@ function makeMergedJunctions(network: Network, t: Transform): three.Mesh {
       },
     };
     osmIdToMeshes[junction.id] = [{mesh: junctionMesh, position}];
-    mergeMeshWithUserData(geometry, junctionMesh);
+    geometries.push(junctionMesh.geometry);
   }
 
+  const geometry = mergeBufferGeometries(geometries);
   const mesh = new three.Mesh(geometry, material);
   mesh.receiveShadow = true;
   return mesh;
