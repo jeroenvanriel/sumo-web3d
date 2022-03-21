@@ -58,11 +58,10 @@ async function loadObjMtl(objFile: string, mtlFile: string): Promise<three.Objec
   return new Promise<three.Object3D>((resolve, reject) => {
     mtlLoader.load(
       mtlFile,
-      materials => {
-        for (const material in materials.materials) {
-          materials.materials[material].side = three.DoubleSide;
-        }
-        objLoader.setMaterials(materials);
+      materialLoader => {
+        materialLoader.preload();
+        _.forEach(materialLoader.materials, (material) => material.side = three.DoubleSide);
+        objLoader.setMaterials(materialLoader);
         objLoader.load(
           objFile,
           obj => {
