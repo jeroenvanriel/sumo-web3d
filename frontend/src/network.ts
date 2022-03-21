@@ -22,6 +22,7 @@ import {
 import {forceArray, makeLookup, FeatureCollection} from './utils';
 
 import { BufferGeometry } from 'three';
+import { mergeBufferGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils';
 
 const DEFAULT_LANE_WIDTH_M = 3.2;
 const LEVEL_HEIGHT_METERS = 3; // how tall is each floor of a building?
@@ -141,7 +142,10 @@ function makeMergedEdgeGeometry(network: Network, t: Transform) {
     materials.RAILWAY,
     materials.WALKWAY,
   ];
-  const mergedGeometry = new three.Geometry();
+
+  let components: BufferGeometry[] = [];
+  let materialIndices: number[] = [];
+
   _.forEach(edgesByTypes, (edges, typeId) => {
     const allowed = idToAllowed[typeId] ? idToAllowed[typeId] : {};
     const materialFn = laneToMaterial.bind(null, idToType[typeId], allowed);
@@ -168,18 +172,24 @@ function makeMergedEdgeGeometry(network: Network, t: Transform) {
 
       for (const child of meshes) {
         const material = child.material;
-        const materialIndex = edgeMaterials.indexOf(material);
-        const {geometry} = child;
-        if (!(geometry instanceof three.Geometry)) return;
-        for (const face of geometry.faces) {
-          face.materialIndex = materialIndex;
-        }
-        mergeMeshWithUserData(mergedGeometry, child);
+        const materialIndex = edgeMaterials.indexOf(material as three.Material);
+        const { geometry } = child;
+        if (!(geometry instanceof three.BufferGeometry)) { console.error('only BufferGeometry is supported'); return };
+        components.push(geometry);
+        materialIndices.push(materialIndex);
       }
     }
   });
 
-  const mesh = new three.Mesh(mergedGeometry, new three.MeshFaceMaterial(edgeMaterials));
+  // merge all components together into one geometry object
+  let mergedGeometry = mergeBufferGeometries(components, true);
+  // mergeBufferGeometries() renumbers the material indices for
+  // groups from 0 onwards, so we set them manually afterwards
+  _.forEach(mergedGeometry.groups, (group, i) => {
+    group.materialIndex = materialIndices[i];
+  })
+
+  const mesh = new three.Mesh(mergedGeometry, edgeMaterials);
   mesh.receiveShadow = true;
   // TODO(danvk): Make roads cast shadows using two faces, one for the top and one for the bottom.
   // If we set mesh.castShadow = true here, roads seem to cast shadows on themselves, resulting in
