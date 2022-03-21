@@ -16,7 +16,7 @@ const sidewalkTexture = loadRepeatedTexture('/sidewalk256.jpg');
 const asphaltTexture = loadRepeatedTexture('/asphalt256.jpg');
 const crossingTexture = loadRepeatedTexture('/zebra.jpg');
 const grassTexture = loadRepeatedTexture('/grass/GrassGreenTexture0001.jpg')
-grassTexture.repeat.set(100,100);
+grassTexture.repeat.set(0.1,0.1);
 
 export const LAND = new three.MeshPhysicalMaterial({
   map: grassTexture,
