@@ -135,7 +135,7 @@ export function flatMeshFromVertices(vertices: number[][], material: three.Mater
 
   const mesh = new three.Mesh(geometry, material);
   mesh.material.side = three.DoubleSide; // visible from above and below.
-  mesh.rotation.set(Math.PI / 2, 0, 0);
+  mesh.geometry.rotateX(Math.PI / 2);
   return mesh;
 }
 
