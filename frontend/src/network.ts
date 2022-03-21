@@ -235,8 +235,13 @@ function makeMergedJunctions(network: Network, t: Transform): three.Mesh {
     geometries.push(junctionMesh.geometry);
   }
 
-  const geometry = mergeBufferGeometries(geometries);
-  const mesh = new three.Mesh(geometry, material);
+  let mesh;
+  if (geometries.length > 0) {
+    const geometry = mergeBufferGeometries(geometries);
+    mesh = new three.Mesh(geometry, material);
+  } else {
+    mesh = new three.Mesh();
+  }
   mesh.receiveShadow = true;
   return mesh;
 }
