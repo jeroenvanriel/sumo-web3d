@@ -59,7 +59,10 @@ async function loadObjMtl(objFile: string, mtlFile: string): Promise<three.Objec
       mtlFile,
       materialLoader => {
         materialLoader.preload();
-        _.forEach(materialLoader.materials, (material) => material.side = three.DoubleSide);
+        _.forEach(materialLoader.materials, (material) => {
+          material.side = three.DoubleSide;
+          (material as MeshPhongMaterial).shininess = 50;
+        });
         const objLoader = new OBJLoader();
         objLoader.setMaterials(materialLoader);
         objLoader.load(
