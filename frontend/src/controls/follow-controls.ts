@@ -21,8 +21,8 @@ function onScroll(vector: PerspectiveVector, event: WheelEvent) {
 }
 
 function createOrbitKeyDown(angle: number) {
-  const leftRotate = createYAxisRotationMatrix3(three.Math.degToRad(5));
-  const rightRotate = createYAxisRotationMatrix3(three.Math.degToRad(-5));
+  const leftRotate = createYAxisRotationMatrix3(three.MathUtils.degToRad(5));
+  const rightRotate = createYAxisRotationMatrix3(three.MathUtils.degToRad(-5));
 
   return (vector: PerspectiveVector, event: KeyboardEvent) => {
     event.preventDefault();
@@ -89,7 +89,8 @@ export default class FollowVehicleControls {
   }
 
   update() {
-    const objectPosition = this.object.getWorldPosition().clone();
+    const objectPosition = new three.Vector3();
+    this.object.getWorldPosition(objectPosition);
     this.camera.position.copy(objectPosition.add(perspectiveVectorToThreeVector(this.vector)));
     this.camera.lookAt(this.object.position);
   }

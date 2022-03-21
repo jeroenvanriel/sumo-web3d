@@ -23,8 +23,8 @@ export const LAND = new three.MeshPhysicalMaterial({
   // color: 0x88ff88,
   metalness: 0.1,
   roughness: 1.0,
-  clearCoat: 0.1,
-  clearCoatRoughness: 1.0,
+  clearcoat: 0.1,
+  clearcoatRoughness: 1.0,
   reflectivity: 0.05,
   // We use polygonOffset to counter z-fighting with roadways.
   polygonOffset: true,
@@ -36,36 +36,36 @@ export const WATER = new three.MeshPhysicalMaterial({
   color: 0xaaaaaa,
   metalness: 0,
   roughness: 0.8,
-  clearCoat: 0.7,
-  clearCoatRoughness: 0.5,
+  clearcoat: 0.7,
+  clearcoatRoughness: 0.5,
   reflectivity: 0.9,
 });
 export const BUILDING_TOP = new three.MeshPhysicalMaterial({
   color: 0xffffff,
   metalness: 0,
   roughness: 0.8,
-  clearCoat: 0.6,
-  clearCoatRoughness: 1.0,
+  clearcoat: 0.6,
+  clearcoatRoughness: 1.0,
   reflectivity: 0.2,
 });
 export const BUILDING_SIDE = new three.MeshPhysicalMaterial({
   color: 0xffffff,
   metalness: 0,
   roughness: 0.8,
-  clearCoat: 0.6,
-  clearCoatRoughness: 1.0,
+  clearcoat: 0.6,
+  clearcoatRoughness: 1.0,
   reflectivity: 0.2,
 });
 
-export const BUILDING = new three.MeshFaceMaterial([BUILDING_TOP, BUILDING_SIDE]);
+export const BUILDING = [BUILDING_TOP, BUILDING_SIDE];
 
 export const ROAD = new three.MeshPhysicalMaterial({
   map: asphaltTexture,
   side: three.DoubleSide, // one side is visible from above, the other casts shadows.
   metalness: 0,
   roughness: 0.8,
-  clearCoat: 0.6,
-  clearCoatRoughness: 1.0,
+  clearcoat: 0.6,
+  clearcoatRoughness: 1.0,
   reflectivity: 0.2,
 });
 export const BUS_STOP = new three.MeshPhysicalMaterial({
@@ -81,8 +81,8 @@ export const CROSSING = new three.MeshPhysicalMaterial({
   side: three.DoubleSide, // one side is visible from above, the other casts shadows.
   metalness: 0,
   roughness: 0.8,
-  clearCoat: 0.6,
-  clearCoatRoughness: 1.0,
+  clearcoat: 0.6,
+  clearcoatRoughness: 1.0,
   reflectivity: 0.2,
   polygonOffset: true, // this resolves z-fighting between crosswalks and junctions.
   polygonOffsetFactor: -3,

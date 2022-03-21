@@ -21,6 +21,9 @@ import {
 
 import {forceArray, makeLookup, FeatureCollection} from './utils';
 
+import { BufferGeometry } from 'three';
+import { mergeBufferGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils';
+
 const DEFAULT_LANE_WIDTH_M = 3.2;
 const LEVEL_HEIGHT_METERS = 3; // how tall is each floor of a building?
 
@@ -68,7 +71,8 @@ function convertMeshToMeshAndPosition(mesh: three.Mesh) {
   }
   let position = null;
   if (mesh.geometry.boundingBox) {
-    position = mesh.geometry.boundingBox.getCenter();
+    const position = new three.Vector3(); 
+    mesh.geometry.boundingBox.getCenter(position);
   }
   return {mesh, position};
 }
@@ -78,7 +82,7 @@ function indexAllowedClasses(allow?: string): ClassLookup {
   return makeLookup((allow || '').split(' '));
 }
 
-function laneToGeometry(transform: Transform, edge: Edge, lane: Lane): three.Geometry {
+function laneToGeometry(transform: Transform, edge: Edge, lane: Lane): three.BufferGeometry {
   const coords = parseShape(lane.shape);
   const width = lane.width ? Number(lane.width) : DEFAULT_LANE_WIDTH_M;
   const uScaleFactor = 1;
@@ -138,7 +142,10 @@ function makeMergedEdgeGeometry(network: Network, t: Transform) {
     materials.RAILWAY,
     materials.WALKWAY,
   ];
-  const mergedGeometry = new three.Geometry();
+
+  let components: BufferGeometry[] = [];
+  let materialIndices: number[] = [];
+
   _.forEach(edgesByTypes, (edges, typeId) => {
     const allowed = idToAllowed[typeId] ? idToAllowed[typeId] : {};
     const materialFn = laneToMaterial.bind(null, idToType[typeId], allowed);
@@ -165,18 +172,24 @@ function makeMergedEdgeGeometry(network: Network, t: Transform) {
 
       for (const child of meshes) {
         const material = child.material;
-        const materialIndex = edgeMaterials.indexOf(material);
-        const {geometry} = child;
-        if (!(geometry instanceof three.Geometry)) return;
-        for (const face of geometry.faces) {
-          face.materialIndex = materialIndex;
-        }
-        mergeMeshWithUserData(mergedGeometry, child);
+        const materialIndex = edgeMaterials.indexOf(material as three.Material);
+        const { geometry } = child;
+        if (!(geometry instanceof three.BufferGeometry)) { console.error('only BufferGeometry is supported'); return };
+        components.push(geometry);
+        materialIndices.push(materialIndex);
       }
     }
   });
 
-  const mesh = new three.Mesh(mergedGeometry, new three.MeshFaceMaterial(edgeMaterials));
+  // merge all components together into one geometry object
+  let mergedGeometry = mergeBufferGeometries(components, true);
+  // mergeBufferGeometries() renumbers the material indices for
+  // groups from 0 onwards, so we set them manually afterwards
+  _.forEach(mergedGeometry.groups, (group, i) => {
+    group.materialIndex = materialIndices[i];
+  })
+
+  const mesh = new three.Mesh(mergedGeometry, edgeMaterials);
   mesh.receiveShadow = true;
   // TODO(danvk): Make roads cast shadows using two faces, one for the top and one for the bottom.
   // If we set mesh.castShadow = true here, roads seem to cast shadows on themselves, resulting in
@@ -189,7 +202,7 @@ function makeMergedEdgeGeometry(network: Network, t: Transform) {
 
 function makeMergedJunctions(network: Network, t: Transform): three.Mesh {
   const material = materials.JUNCTION;
-  const geometry = new three.Geometry();
+  let geometries : BufferGeometry[] = [];
   for (const junction of network.net.junction) {
     if (junction.type === 'internal') continue;
     const points = parseShape(junction.shape).map(pt => t.xyToXz(pt));
@@ -219,9 +232,10 @@ function makeMergedJunctions(network: Network, t: Transform): three.Mesh {
       },
     };
     osmIdToMeshes[junction.id] = [{mesh: junctionMesh, position}];
-    mergeMeshWithUserData(geometry, junctionMesh);
+    geometries.push(junctionMesh.geometry);
   }
 
+  const geometry = mergeBufferGeometries(geometries);
   const mesh = new three.Mesh(geometry, material);
   mesh.receiveShadow = true;
   return mesh;
@@ -267,7 +281,7 @@ function makePolygon(polygon: Polygon, t: Transform): three.Mesh | null {
 }
 
 function makeMergedPolygons(polygons: Polygon[], t: Transform): three.Mesh {
-  const geometry = new three.Geometry();
+  const geometry = new three.BufferGeometry();
   for (const polygon of polygons) {
     const obj = makePolygon(polygon, t);
     if (obj) {
@@ -307,7 +321,7 @@ function makeBusStop(busStop: BusStop, lane: Lane, t: Transform): three.Mesh {
 }
 
 function makeMergedBusStops(network: Network, busStops: BusStop[], t: Transform): three.Mesh {
-  const geometry = new three.Geometry();
+  const geometry = new three.BufferGeometry();
   // Index the lanes.
   const idToLane: {[laneId: string]: Lane} = {};
   for (const edge of network.net.edge) {
@@ -330,7 +344,7 @@ function makeMergedBusStops(network: Network, busStops: BusStop[], t: Transform)
 }
 
 function makeMergedLakes(lakes: FeatureCollection, t: Transform): three.Mesh {
-  const geometry = new three.Geometry();
+  const geometry = new three.BufferGeometry();
   for (const feature of lakes.features) {
     feature.geometry.coordinates.forEach((c: number[][]) => {
       for (let i = 0; i < c.length; i++) {

@@ -11,7 +11,7 @@ import {createXAxisRotationMatrix4, rotateInWorldSpace} from './utils';
 
 // degrees of rotation per keydown event
 const VELOCITY = 5;
-const VELOCITY_RAD = three.Math.degToRad(VELOCITY);
+const VELOCITY_RAD = three.MathUtils.degToRad(VELOCITY);
 const UP_ROTATE = createXAxisRotationMatrix4(VELOCITY_RAD);
 const DOWN_ROTATE = createXAxisRotationMatrix4(-VELOCITY_RAD);
 
@@ -111,7 +111,7 @@ export default class PanAndRotateControls {
     }
   }
 
-  onMouseWheel(event: MouseWheelEvent) {
+  onMouseWheel(event: WheelEvent) {
     event.preventDefault();
     this.zoom(event.deltaY);
     return true;
@@ -245,7 +245,8 @@ export default class PanAndRotateControls {
       }
     } else {
       if (KEY_STATE[KEY_CODES.H] || KEY_STATE[KEY_CODES.A]) {
-        const direction = this.camera.getWorldDirection();
+        const direction = new three.Vector3();
+        this.camera.getWorldDirection(direction);
         const horizontal = direction
           .clone()
           .cross(new three.Vector3(0, 1, 0))
@@ -253,7 +254,8 @@ export default class PanAndRotateControls {
         this.camera.position.add(horizontal);
       }
       if (KEY_STATE[KEY_CODES.L] || KEY_STATE[KEY_CODES.D]) {
-        const direction = this.camera.getWorldDirection();
+        const direction = new three.Vector3();
+        this.camera.getWorldDirection(direction);
         const horizontal = direction
           .clone()
           .cross(new three.Vector3(0, 1, 0))

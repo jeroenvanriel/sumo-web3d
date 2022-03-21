@@ -3,15 +3,16 @@
  * Utility code for working with three.js.
  */
 import * as three from 'three';
+import * as _ from 'lodash';
+
 const extrudePolyline = require('extrude-polyline');
-const Complex = require('three-simplicial-complex')(three);
 
 import {Transform} from './coords';
-import {findClosestPoint, polylineDistance} from './geometry';
+import { sub, dot, rotateCW, findClosestPoint, polylineDistance } from './geometry';
 import {Feature} from './utils';
 
-const OBJLoader = require('three-obj-loader');
-OBJLoader(three); // This adds three.OBJLoader, which already has types.
+import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader';
+import { BufferGeometry, Float32BufferAttribute } from 'three';
 
 function shapeFromVertices(vertices: number[][]) {
   const shape = new three.Shape();
@@ -100,31 +101,37 @@ function addUVMappingToExtrudedGeometry(
 // The idea is that the "u" direction will be repeated, whereas the "v" direction will not.
 // The scaling of the "u" values can be adjusted with the uScaleFactor parameter.
 function addUVMappingToGeometryWithPolyline(
-  geometry: three.Geometry,
+  geometry: three.BufferGeometry,
   points: number[][],
   width: number,
   uScaleFactor: number,
   transform: Transform,
 ) {
-  const {faces} = geometry;
-  for (let i = 0; i < faces.length; i++) {
-    const v1 = geometry.vertices[faces[i].a];
-    const v2 = geometry.vertices[faces[i].b];
-    const v3 = geometry.vertices[faces[i].c];
+  const indices = geometry.getIndex();
+  if (indices === null) {
+    // TODO(Jeroen): what to do in this case?
+    console.error("no indexed faces")
+    return
+  }
+
+  const positions = geometry.getAttribute('position');
+  const uvs = new Array(positions.count * 2);
+
+  for (let i = 0; i < indices.count; i++) {
+    // vertex index
+    const vi = indices.array[i];
+    
+    const vx = positions.array[3*vi + 0];
+    const vz = positions.array[3*vi + 2];
 
     // TODO(danvk): it's a little gross that the transform is here.
-    const d1 = polylineDistance(points, [v1.x, transform.bottom - v1.z]);
-    const d2 = polylineDistance(points, [v2.x, transform.bottom - v2.z]);
-    const d3 = polylineDistance(points, [v3.x, transform.bottom - v3.z]);
+    const d = polylineDistance(points, [vx, transform.bottom - vz]);
 
-    geometry.faceVertexUvs[0].push([
       // Scale dLine as requested. Rescale dPerp to go from 0 to 1.
-      new three.Vector2(d1.dLine * uScaleFactor, d1.dPerp / width + 0.5),
-      new three.Vector2(d2.dLine * uScaleFactor, d2.dPerp / width + 0.5),
-      new three.Vector2(d3.dLine * uScaleFactor, d3.dPerp / width + 0.5),
-    ]);
+    uvs[2*vi + 0] = (d.dLine * uScaleFactor);
+    uvs[2*vi + 1] = (d.dPerp / width + 0.5);
   }
-  geometry.uvsNeedUpdate = true;
+  geometry.setAttribute('uv', new Float32BufferAttribute(uvs, 2));
 }
 
 /** Return a flat mesh from a polygon's vertices. The polygon will have y=0. */
@@ -135,7 +142,7 @@ export function flatMeshFromVertices(vertices: number[][], material: three.Mater
 
   const mesh = new three.Mesh(geometry, material);
   mesh.material.side = three.DoubleSide; // visible from above and below.
-  mesh.rotation.set(Math.PI / 2, 0, 0);
+  mesh.geometry.rotateX(Math.PI / 2);
   return mesh;
 }
 
@@ -159,7 +166,7 @@ export function extrudedMeshFromVertices(
 ) {
   const shape = shapeFromVertices(vertices);
   const geometry = new three.ExtrudeGeometry(shape, {
-    amount: height,
+    depth: height,
     bevelEnabled: false,
   });
   addUVMappingToExtrudedGeometry(geometry, vertices, topBottomUVScale, sideUVScale);
@@ -179,11 +186,11 @@ export function lineString(
   points: number[][],
   transform: Transform,
   params: LineParams,
-): three.Geometry {
+): three.BufferGeometry {
   const simplicialComplex = extrudePolyline({
     thickness: params.width,
     // TODO(danvk): figure out what good values for cap/join/miterLimit are.
-    cap: 'square',
+    cap: 'butt',
     join: 'bevel',
     miterLimit: 10,
   }).build(points);
@@ -194,24 +201,37 @@ export function lineString(
     const closestPoint = findClosestPoint(xyz, points);
     return [xyz[0], closestPoint && closestPoint[2] ? closestPoint[2] : 0, xyz[2]];
   });
-  const geometry: three.Geometry = Complex(simplicialComplex);
 
-  // Some of the faces that come out of the triangulation process have face normals that
-  // face up while others face down. To get consistent shadows, we want them all pointing
-  // down.
-  geometry.computeFaceNormals();
-  let anyFlipped = false;
-  for (const face of geometry.faces) {
-    if (face.normal.y > 0) {
-      const {a, c} = face;
-      face.a = c;
-      face.c = a;
-      anyFlipped = true;
+  const geometry: three.BufferGeometry = new BufferGeometry();
+
+  // flatten positions array into BufferAttribute
+  const vertices : number[] = _.flatten(simplicialComplex.positions);
+  geometry.setAttribute('position', new three.Float32BufferAttribute(vertices, 3));
+
+  // add faces(/cells)
+  const indices = [];
+  for (let i = 0; i < simplicialComplex.cells.length; i++) {
+    var face = simplicialComplex.cells[i];
+    // extract the x- and z-coordinates to determine the orientation
+    // face[i] gives index of vertex
+    // p[face[i]] gives x,y,z
+    let p = simplicialComplex.positions;
+    let a = [p[face[0]][0], p[face[0]][2]];
+    let b = [p[face[1]][0], p[face[1]][2]];
+    let c = [p[face[2]][0], p[face[2]][2]];
+
+    // make sure that all faces have the same orientation
+    // we perform an orientation test on vertices a, b, c
+    // to determine CW or CCW
+    if (dot(rotateCW(sub(b, a)), sub(c, b)) < 0) {
+      indices.push(face[0], face[1], face[2]);
+    } else {
+      indices.push(face[2], face[1], face[0]);
     }
   }
-  if (anyFlipped) {
-    geometry.computeFaceNormals();
-  }
+  geometry.setIndex(indices);
+
+  geometry.computeVertexNormals();
 
   addUVMappingToGeometryWithPolyline(
     geometry,
@@ -220,6 +240,7 @@ export function lineString(
     params.uScaleFactor || 1,
     transform,
   );
+
   return geometry;
 }
 
@@ -233,7 +254,7 @@ function polygonToShape(coordinates: number[][][]): three.Shape {
 }
 
 /** Convert a GeoJSON feature toa  three.js Geometry */
-export function featureToGeometry(feature: Feature): three.Geometry {
+export function featureToGeometry(feature: Feature): three.BufferGeometry {
   const geometry = feature.geometry;
   if (geometry.type === 'MultiPolygon') {
     const coordinates: number[][][][] = geometry.coordinates;
@@ -252,7 +273,7 @@ export function featureToGeometry(feature: Feature): three.Geometry {
   }
 }
 
-const OBJ_LOADER = new three.OBJLoader();
+const OBJ_LOADER = new OBJLoader();
 
 /** Load an OBJ file, returning a Promise for it. Optionally adds a material. */
 export function loadOBJFile(url: string, material?: three.Material): Promise<three.Object3D> {

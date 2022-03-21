@@ -51,7 +51,9 @@ export const XZPlaneMatrix4 = makeXZPlaneMatrix4();
 export function rotateInWorldSpace(object: three.Object3D, axis: three.Vector3, radians: number) {
   const rotWorldMatrix = new three.Matrix4();
   rotWorldMatrix.makeRotationAxis(axis.normalize(), radians);
-  const worldMatrx = new three.Matrix4().makeRotationFromQuaternion(object.getWorldQuaternion());
+  const quat = new three.Quaternion();
+  object.getWorldQuaternion(quat);
+  const worldMatrx = new three.Matrix4().makeRotationFromQuaternion(quat);
   rotWorldMatrix.multiply(worldMatrx);
   object.rotation.setFromRotationMatrix(rotWorldMatrix);
 }

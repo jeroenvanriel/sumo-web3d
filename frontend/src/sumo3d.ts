@@ -1,8 +1,9 @@
 // Copyright 2018 Sidewalk Labs | http://www.eclipse.org/legal/epl-v20.html
 import * as dat from 'dat.gui/build/dat.gui.js';
 import * as _ from 'lodash';
-import Stats = require('stats.js');
+import * as Stats from 'stats.js';
 import * as three from 'three';
+import { Object3D } from 'three';
 
 import {LightInfo, SimulationState, VehicleInfo} from './api';
 import FollowVehicleControls from './controls/follow-controls';
@@ -78,7 +79,7 @@ export default class Sumo3D {
   private vehicles: {[vehicleId: string]: Vehicle};
   private camera: three.PerspectiveCamera;
   private scene: three.Scene;
-  private renderer: three.Renderer;
+  private renderer: three.WebGLRenderer;
   private controls: PanAndRotateControls | FollowVehicleControls;
   public simulationState: SimulationState;
   private vClassObjects: {[vehicleClass: string]: three.Object3D[]};
@@ -166,7 +167,7 @@ export default class Sumo3D {
     if (init.additional && init.additional.tlLogic) {
       this.trafficLights.addLogic(forceArray(init.additional.tlLogic));
     }
-    this.groundPlane = this.scene.getObjectByName('Land');
+    this.groundPlane = this.scene.getObjectByName('Land') as Object3D<Event>;
 
     this.animate = this.animate.bind(this);
     this.moveCameraTo = this.moveCameraTo.bind(this);
@@ -222,7 +223,7 @@ export default class Sumo3D {
     const v = vehicle.vehicleInfo;
     const obj = vehicle.mesh;
     const [x, y, z] = this.transform.sumoXyzToXyz([v.x, v.y, v.z]);
-    const angle = three.Math.degToRad(180 - v.angle);
+    const angle = three.MathUtils.degToRad(180 - v.angle);
     obj.position.set(x - v.length / 2 * Math.sin(angle), y, z - v.length / 2 * Math.cos(angle));
     obj.rotation.set(0, angle, 0);
     if (v.type === 'passenger') {
@@ -443,10 +444,10 @@ export default class Sumo3D {
       this.highlightedVehicles.push({
         vehicle: this.vehicles[sumoId],
         id: sumoId,
-        originalMaterial: (this.vehicles[sumoId].mesh.children[0] as three.Mesh).material.clone(),
+        originalMaterial: ((this.vehicles[sumoId].mesh.children[0] as three.Mesh).material as three.Material).clone(),
       });
-      (this.vehicles[sumoId].mesh.children[0] as three.Mesh).material = (update
-        .children[0] as three.Mesh).material.clone();
+      (this.vehicles[sumoId].mesh.children[0] as three.Mesh).material = ((update
+        .children[0] as three.Mesh).material as three.Material).clone();
       const {position} = originalMesh;
       if (changeCamera && position !== null) {
         this.camera.position.copy(position);

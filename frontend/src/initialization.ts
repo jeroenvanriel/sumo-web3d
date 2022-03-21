@@ -3,11 +3,13 @@
 
 import * as _ from 'lodash';
 import * as three from 'three';
-import * as MTLLoader from 'three-mtl-loader';
 
 import {AdditionalResponse, Network, ScenarioName, SimulationState, SumoSettings} from './api';
 import {loadOBJFile} from './three-utils';
 import {promiseObject, FeatureCollection} from './utils';
+
+import {OBJLoader} from 'three/examples/jsm/loaders/OBJLoader';
+import {MTLLoader} from 'three/examples/jsm/loaders/MTLLoader';
 
 import {SUPPORTED_VEHICLE_CLASSES} from './constants';
 
@@ -35,7 +37,8 @@ const {hostname} = window.location;
 const WEB_SOCKETS_ENDPOINT = `ws://${hostname}:5678/`;
 
 const textureLoader = new three.TextureLoader();
-const mtlLoader = new MTLLoader() as three.MTLLoader;
+const mtlLoader = new MTLLoader();
+const objLoader = new OBJLoader();
 
 function getOrThrow(id: string): HTMLElement {
   const el = document.getElementById(id);
@@ -56,8 +59,6 @@ async function loadObjMtl(objFile: string, mtlFile: string): Promise<three.Objec
     mtlLoader.load(
       mtlFile,
       materials => {
-        materials.preload();
-        const objLoader = new three.OBJLoader();
         for (const material in materials.materials) {
           materials.materials[material].side = three.DoubleSide;
         }
@@ -133,7 +134,7 @@ export default async function init(): Promise<InitResources> {
 
   const domPromise = new Promise((resolve, reject) => {
     if (document.readyState !== 'loading') {
-      resolve();
+      resolve(true);
     } else {
       window.addEventListener('DOMContentLoaded', resolve);
     }
