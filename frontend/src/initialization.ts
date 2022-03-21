@@ -38,7 +38,6 @@ const WEB_SOCKETS_ENDPOINT = `ws://${hostname}:5678/`;
 
 const textureLoader = new three.TextureLoader();
 const mtlLoader = new MTLLoader();
-const objLoader = new OBJLoader();
 
 function getOrThrow(id: string): HTMLElement {
   const el = document.getElementById(id);
@@ -61,6 +60,7 @@ async function loadObjMtl(objFile: string, mtlFile: string): Promise<three.Objec
       materialLoader => {
         materialLoader.preload();
         _.forEach(materialLoader.materials, (material) => material.side = three.DoubleSide);
+        const objLoader = new OBJLoader();
         objLoader.setMaterials(materialLoader);
         objLoader.load(
           objFile,
