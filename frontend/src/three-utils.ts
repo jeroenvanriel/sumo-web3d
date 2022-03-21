@@ -100,31 +100,37 @@ function addUVMappingToExtrudedGeometry(
 // The idea is that the "u" direction will be repeated, whereas the "v" direction will not.
 // The scaling of the "u" values can be adjusted with the uScaleFactor parameter.
 function addUVMappingToGeometryWithPolyline(
-  geometry: three.Geometry,
+  geometry: three.BufferGeometry,
   points: number[][],
   width: number,
   uScaleFactor: number,
   transform: Transform,
 ) {
-  const {faces} = geometry;
-  for (let i = 0; i < faces.length; i++) {
-    const v1 = geometry.vertices[faces[i].a];
-    const v2 = geometry.vertices[faces[i].b];
-    const v3 = geometry.vertices[faces[i].c];
+  const indices = geometry.getIndex();
+  if (indices === null) {
+    // TODO(Jeroen): what to do in this case?
+    console.error("no indexed faces")
+    return
+  }
+
+  const positions = geometry.getAttribute('position');
+  const uvs = new Array(positions.count * 2);
+
+  for (let i = 0; i < indices.count; i++) {
+    // vertex index
+    const vi = indices.array[i];
+    
+    const vx = positions.array[3*vi + 0];
+    const vz = positions.array[3*vi + 2];
 
     // TODO(danvk): it's a little gross that the transform is here.
-    const d1 = polylineDistance(points, [v1.x, transform.bottom - v1.z]);
-    const d2 = polylineDistance(points, [v2.x, transform.bottom - v2.z]);
-    const d3 = polylineDistance(points, [v3.x, transform.bottom - v3.z]);
+    const d = polylineDistance(points, [vx, transform.bottom - vz]);
 
-    geometry.faceVertexUvs[0].push([
       // Scale dLine as requested. Rescale dPerp to go from 0 to 1.
-      new three.Vector2(d1.dLine * uScaleFactor, d1.dPerp / width + 0.5),
-      new three.Vector2(d2.dLine * uScaleFactor, d2.dPerp / width + 0.5),
-      new three.Vector2(d3.dLine * uScaleFactor, d3.dPerp / width + 0.5),
-    ]);
+    uvs[2*vi + 0] = (d.dLine * uScaleFactor);
+    uvs[2*vi + 1] = (d.dPerp / width + 0.5);
   }
-  geometry.uvsNeedUpdate = true;
+  geometry.setAttribute('uv', new Float32BufferAttribute(uvs, 2));
 }
 
 /** Return a flat mesh from a polygon's vertices. The polygon will have y=0. */
