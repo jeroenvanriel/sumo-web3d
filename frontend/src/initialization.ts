@@ -12,6 +12,7 @@ import {OBJLoader} from 'three/examples/jsm/loaders/OBJLoader';
 import {MTLLoader} from 'three/examples/jsm/loaders/MTLLoader';
 
 import {SUPPORTED_VEHICLE_CLASSES} from './constants';
+import { MeshPhongMaterial } from 'three';
 
 export interface InitResources {
   availableScenarios: ScenarioName[];
