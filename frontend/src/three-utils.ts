@@ -11,6 +11,7 @@ import {Transform} from './coords';
 import { sub, dot, rotateCW, findClosestPoint, polylineDistance } from './geometry';
 import {Feature} from './utils';
 
+import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader';
 import { BufferGeometry, Float32BufferAttribute } from 'three';
 
 function shapeFromVertices(vertices: number[][]) {
@@ -272,7 +273,7 @@ export function featureToGeometry(feature: Feature): three.BufferGeometry {
   }
 }
 
-const OBJ_LOADER = new three.OBJLoader();
+const OBJ_LOADER = new OBJLoader();
 
 /** Load an OBJ file, returning a Promise for it. Optionally adds a material. */
 export function loadOBJFile(url: string, material?: three.Material): Promise<three.Object3D> {
