@@ -3,15 +3,15 @@
  * Utility code for working with three.js.
  */
 import * as three from 'three';
+import * as _ from 'lodash';
+
 const extrudePolyline = require('extrude-polyline');
-const Complex = require('three-simplicial-complex')(three);
 
 import {Transform} from './coords';
-import {findClosestPoint, polylineDistance} from './geometry';
+import { sub, dot, rotateCW, findClosestPoint, polylineDistance } from './geometry';
 import {Feature} from './utils';
 
-const OBJLoader = require('three-obj-loader');
-OBJLoader(three); // This adds three.OBJLoader, which already has types.
+import { BufferGeometry, Float32BufferAttribute } from 'three';
 
 function shapeFromVertices(vertices: number[][]) {
   const shape = new three.Shape();
@@ -183,7 +183,7 @@ export function lineString(
   const simplicialComplex = extrudePolyline({
     thickness: params.width,
     // TODO(danvk): figure out what good values for cap/join/miterLimit are.
-    cap: 'square',
+    cap: 'butt',
     join: 'bevel',
     miterLimit: 10,
   }).build(points);
@@ -194,24 +194,37 @@ export function lineString(
     const closestPoint = findClosestPoint(xyz, points);
     return [xyz[0], closestPoint && closestPoint[2] ? closestPoint[2] : 0, xyz[2]];
   });
-  const geometry: three.Geometry = Complex(simplicialComplex);
 
-  // Some of the faces that come out of the triangulation process have face normals that
-  // face up while others face down. To get consistent shadows, we want them all pointing
-  // down.
-  geometry.computeFaceNormals();
-  let anyFlipped = false;
-  for (const face of geometry.faces) {
-    if (face.normal.y > 0) {
-      const {a, c} = face;
-      face.a = c;
-      face.c = a;
-      anyFlipped = true;
+  const geometry: three.BufferGeometry = new BufferGeometry();
+
+  // flatten positions array into BufferAttribute
+  const vertices : number[] = _.flatten(simplicialComplex.positions);
+  geometry.setAttribute('position', new three.Float32BufferAttribute(vertices, 3));
+
+  // add faces(/cells)
+  const indices = [];
+  for (let i = 0; i < simplicialComplex.cells.length; i++) {
+    var face = simplicialComplex.cells[i];
+    // extract the x- and z-coordinates to determine the orientation
+    // face[i] gives index of vertex
+    // p[face[i]] gives x,y,z
+    let p = simplicialComplex.positions;
+    let a = [p[face[0]][0], p[face[0]][2]];
+    let b = [p[face[1]][0], p[face[1]][2]];
+    let c = [p[face[2]][0], p[face[2]][2]];
+
+    // make sure that all faces have the same orientation
+    // we perform an orientation test on vertices a, b, c
+    // to determine CW or CCW
+    if (dot(rotateCW(sub(b, a)), sub(c, b)) < 0) {
+      indices.push(face[0], face[1], face[2]);
+    } else {
+      indices.push(face[2], face[1], face[0]);
     }
   }
-  if (anyFlipped) {
-    geometry.computeFaceNormals();
-  }
+  geometry.setIndex(indices);
+
+  geometry.computeVertexNormals();
 
   addUVMappingToGeometryWithPolyline(
     geometry,
@@ -220,6 +233,7 @@ export function lineString(
     params.uScaleFactor || 1,
     transform,
   );
+
   return geometry;
 }
 

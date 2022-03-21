@@ -11,16 +11,20 @@ export interface PolyLineDistance {
   dPerp: number; // perpendicular distance from the line. Negative = point is right of line.
 }
 
-function add(a: number[], b: number[]): number[] {
+export function add(a: number[], b: number[]): number[] {
   return [a[0] + b[0], a[1] + b[1]];
 }
 
-function sub(a: number[], b: number[]): number[] {
+export function sub(a: number[], b: number[]): number[] {
   return [a[0] - b[0], a[1] - b[1]];
 }
 
-function dot(a: number[], b: number[]): number {
+export function dot(a: number[], b: number[]): number {
   return a[0] * b[0] + a[1] * b[1];
+}
+
+export function rotateCW(a: number[]): number[] {
+  return [a[1], -a[0]];
 }
 
 export function vectorNorm(v: number[]): number {
