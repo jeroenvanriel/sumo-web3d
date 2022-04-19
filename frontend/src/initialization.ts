@@ -10,6 +10,7 @@ import {promiseObject, FeatureCollection} from './utils';
 
 import {OBJLoader} from 'three/examples/jsm/loaders/OBJLoader';
 import {MTLLoader} from 'three/examples/jsm/loaders/MTLLoader';
+import {GLTFLoader} from 'three/examples/jsm/loaders/GLTFLoader';
 
 import {SUPPORTED_VEHICLE_CLASSES} from './constants';
 import { MeshPhongMaterial } from 'three';
@@ -19,6 +20,7 @@ export interface InitResources {
   settings: SumoSettings | null;
   network: Network;
   vehicles: {[vehicleClass: string]: three.Object3D[]};
+  tree: three.Object3D;
   additional: AdditionalResponse | null;
   arrows: {
     left: three.Object3D;
@@ -106,6 +108,18 @@ function loadVehicles(): {[vehicleClass: string]: Promise<three.Object3D[]>} {
   );
 }
 
+function loadTree(): Promise<three.Object3D> {
+  return new Promise(async (resolve, reject) => {
+    const loader = new GLTFLoader();
+    loader.load('/trees/tree.glb', function(gltf) {
+      resolve(gltf.scene);
+    }, undefined, function(error) {
+      console.error(error);
+    });
+
+  });
+}
+
 async function fetchJson<T>(url: string): Promise<T> {
   const response = await fetch(url);
   if (response.status !== 200) {
@@ -154,6 +168,7 @@ export default async function init(): Promise<InitResources> {
       additional: fetchJsonAllowFail<AdditionalResponse>('additional'),
       availableScenarios: fetchJson<ScenarioName[]>('/scenarios'),
       vehicles: promiseObject(loadVehicles()),
+      tree: loadTree(),
       water: fetchJson<FeatureCollection>('water'),
       settings: fetchJsonAllowFail<SumoSettings>('settings'),
       arrows: promiseObject({

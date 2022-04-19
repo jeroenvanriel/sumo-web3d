@@ -157,6 +157,7 @@ export default class Sumo3D {
       init.additional,
       init.water,
       this.transform,
+      init.tree,
     );
 
     this.scene.add(staticGroup);
