@@ -108,7 +108,7 @@ export const HIGHLIGHT = new three.MeshPhysicalMaterial({
   side: three.DoubleSide,
 });
 export const JUNCTION = new three.MeshPhysicalMaterial({
-  color: 0x373737,
+  color: 0x272727,
   reflectivity: 0.2,
   polygonOffset: true, // this resolves z-fighting between the junctions and street.
   polygonOffsetFactor: -2,
