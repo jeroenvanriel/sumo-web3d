@@ -14,7 +14,6 @@ import {
   extrudedMeshFromVertices,
   featureToGeometry,
   flatMeshFromVertices,
-  flatRectMesh,
   lineString,
   mergeMeshWithUserData,
 } from './three-utils';
@@ -396,7 +395,10 @@ export function makeStaticObjects(
   left-= padding; right += padding;
 
   // Land mesh
-  const bgMesh = flatRectMesh({left, top, right, bottom}, materials.LAND);
+  const bgMesh = flatMeshFromVertices(
+    [[left, top], [right, top], [right, bottom], [left, bottom]].map(pt => t.xyToXz(pt)),
+    materials.LAND,
+  );
   bgMesh.name = 'Land';
   bgMesh.receiveShadow = true;
   group.add(bgMesh);

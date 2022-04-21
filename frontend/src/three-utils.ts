@@ -146,16 +146,6 @@ export function flatMeshFromVertices(vertices: number[][], material: three.Mater
   return mesh;
 }
 
-export function flatRectMesh(
-  {top, left, right, bottom}: {top: number; left: number; right: number; bottom: number},
-  material: three.Material,
-) {
-  return flatMeshFromVertices(
-    [[left, top], [right, top], [right, bottom], [left, bottom]],
-    material,
-  );
-}
-
 /** Creates a shape with y=0 and extrudes it up to y=height */
 export function extrudedMeshFromVertices(
   vertices: number[][],
