@@ -9,6 +9,9 @@ node_modules
 # FCD files are generally too big
 *fcd.xml
 
+# Blender backup files
+*.blend1
+
 # Generated static files
 *.bundle.js
 *.bundle.js.map
