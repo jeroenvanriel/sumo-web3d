@@ -1,7 +1,7 @@
 // Copyright 2018 Sidewalk Labs | http://www.eclipse.org/legal/epl-v20.html
 import * as _ from 'lodash';
 
-import {Object3DLoaderParam, SupportedVehicle} from './api';
+import {Object3DLoaderParams, SupportedVehicle} from './api';
 
 // These are abstract vehicle classes. For a complete list, see:
 // http://sumo.dlr.de/wiki/Definition_of_Vehicles,_Vehicle_Types,_and_Routes
@@ -14,7 +14,7 @@ const OGA_TYPES = ['normal', 'hatchback', 'mpv', 'station'];
 // The OGA vehicles are scaled to [-1, 1]. This winds up being a bit small, so we scale up.
 const OGA_SCALE = 2.2;
 
-function ogaVehicle(type: string, color: string): Object3DLoaderParam {
+function ogaVehicle(type: string, color: string): Object3DLoaderParams {
   return {
     objectUrl: `/vehicles/car-${type}-${color}.obj`,
     materialUrl: `/vehicles/car-${type}-${color}.mtl`,
@@ -25,7 +25,7 @@ function ogaVehicle(type: string, color: string): Object3DLoaderParam {
 const CGT_SCALE = 1.2;
 const CGT_COLORS = ['red', 'black', 'brown', 'orange', 'white'];
 
-function cgtVehicle(color: string): Object3DLoaderParam {
+function cgtVehicle(color: string): Object3DLoaderParams {
   return {
     objectUrl: `/vehicles-new/clio_${color}.obj`,
     materialUrl: `/vehicles-new/clio_${color}.mtl`,
@@ -80,3 +80,13 @@ export const SUPPORTED_VEHICLE_CLASSES: {[sumoVehicleClass: string]: SupportedVe
     ],
   },
 };
+
+export const MODELS: {[name: string]: Object3DLoaderParams} = {
+  tree: {objectUrl: '/models/tree.glb'},
+  environment: {
+    objectUrl: '/models/osm.glb',
+    position: { x: 550, y: 0, z: 414 }
+  },
+  building: {objectUrl: '/models/flat.glb'},
+  tlFixture: {objectUrl: '/models/tlFixture.glb'},
+}

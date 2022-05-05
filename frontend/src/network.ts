@@ -20,8 +20,9 @@ import {
 
 import {forceArray, makeLookup, FeatureCollection} from './utils';
 
-import { BufferGeometry } from 'three';
+import { BufferGeometry, Mesh, InstancedMesh, Matrix4, Object3D, Vector3 } from 'three';
 import { mergeBufferGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils';
+import { InitResources } from './initialization';
 
 const DEFAULT_LANE_WIDTH_M = 3.2;
 const LEVEL_HEIGHT_METERS = 3; // how tall is each floor of a building?
@@ -370,6 +371,88 @@ function makeMergedLakes(lakes: FeatureCollection, t: Transform): three.Mesh {
   return mesh;
 }
 
+function generateTrees(
+  tree: Object3D,
+  number: number,
+  t: Transform,
+  forbiddenArea: Object3D,
+): Object3D {
+  const meshes = tree.children.map(child => 
+    new InstancedMesh((child as Mesh).geometry, (child as Mesh).material, number)
+  )
+  const dummy = new Object3D();
+  for (let i = 0; i < number; i++) {
+    let x = Math.random() * (t.right - t.left) + t.left;
+    let y = Math.random() * (t.bottom - t.top) + t.top;
+
+    const origin = new Vector3(...t.xyToXyz([x, y])).add(new Vector3(0, 1, 0));
+    const direction = new Vector3(0, -1, 0); // point down
+    const raycaster = new three.Raycaster(origin, direction);
+    const intersections = raycaster.intersectObjects(forbiddenArea.children);
+    if (intersections.length > 0) {
+      // skip placement of tree on forbidden area
+      continue;
+    }
+
+    dummy.position.set(...t.xyToXyz([x, y]));
+    dummy.updateMatrix();
+    _.forEach(meshes, mesh => mesh.setMatrixAt(i, dummy.matrix))
+  }
+
+  const mesh = new three.Group();
+  mesh.add(...meshes);
+  return mesh;
+}
+
+function generateBuildings(
+  building: Object3D,
+  number: number,
+  t: Transform,
+  forbiddenArea: Object3D,
+): Object3D {
+  const meshes: [InstancedMesh, Matrix4][] = building.children[0].children.map(child => {
+    const meshTransform = new Matrix4()
+      .multiply( new Matrix4().makeTranslation( ...child.position.toArray() ))
+      .multiply( new Matrix4().makeScale( ...child.scale.toArray() ))
+    
+    const geometry = (child as Mesh).geometry.clone();
+    const instance = new InstancedMesh(geometry, (child as Mesh).material, number)
+
+    return [instance, meshTransform];
+  })
+
+  const dummy = new Object3D();
+  for (let i = 0; i < number; i++) {
+    let x = Math.random() * (t.right - t.left) + t.left;
+    let y = Math.random() * (t.bottom - t.top) + t.top;
+
+    const origin = new Vector3(...t.xyToXyz([x, y])).add(new Vector3(0, 1, 0));
+    const direction = new Vector3(0, -1, 0); // point down
+    const raycaster = new three.Raycaster(origin, direction);
+    const intersections = raycaster.intersectObjects(forbiddenArea.children);
+    if (intersections.length > 0) {
+      // skip placement on forbidden area
+      // TODO: use bounding box instead of one point of the building
+      continue;
+    }
+
+    dummy.position.set(...t.xyToXyz([x, y]));
+    dummy.updateMatrix();
+    _.forEach(meshes, ([mesh, meshTransform]) => {
+      const matrix = new Matrix4()
+        .multiply( new Matrix4().makeTranslation(...dummy.position.toArray()))
+        .multiply( meshTransform );
+
+      mesh.setMatrixAt(i, matrix)
+      mesh.instanceMatrix.needsUpdate = true;
+    })
+  }
+
+  const mesh = new three.Group();
+  mesh.add(...meshes.map(([mesh, _]) => mesh));
+  return mesh;
+}
+
 /**
  * Create a group of three.js objects representing the static elements of the scene.
  *
@@ -383,18 +466,35 @@ export function makeStaticObjects(
   network: Network,
   additionalResponse: AdditionalResponse | null,
   lakes: FeatureCollection | null,
+  models: InitResources['models'],
   t: Transform,
 ): [three.Group, OsmIdToMesh] {
   const group = new three.Group();
-  let [left, top, right, bottom] = network.net.location.convBoundary.split(',').map(Number);
 
+  // Road network
+  const {mesh: edgeMesh, osmIdToMeshes: osmIdToMesh} = makeMergedEdgeGeometry(network, t);
+  group.add(edgeMesh);
+  group.add(makeMergedJunctions(network, t));
+
+  // Trees
+  if (models.tree) {
+    const treesMesh = generateTrees(models.tree, 30, t, group);
+    group.add(treesMesh);
+  }
+
+  // Buildings
+  if (models.building) {
+    const buildingsMesh = generateBuildings(models.building, 10, t, group);
+    group.add(buildingsMesh);
+  }
+
+  // Land mesh
+  let [left, top, right, bottom] = network.net.location.convBoundary.split(',').map(Number);
   // We add some small padding by default to support networks having
   // zero-width/height.
   const padding = 10;
   top -= padding; bottom += padding;
   left-= padding; right += padding;
-
-  // Land mesh
   const bgMesh = flatMeshFromVertices(
     [[left, top], [right, top], [right, bottom], [left, bottom]].map(pt => t.xyToXz(pt)),
     materials.LAND,
@@ -403,9 +503,12 @@ export function makeStaticObjects(
   bgMesh.receiveShadow = true;
   group.add(bgMesh);
 
-  const {mesh: edgeMesh, osmIdToMeshes: osmIdToMesh} = makeMergedEdgeGeometry(network, t);
-  group.add(edgeMesh);
-  group.add(makeMergedJunctions(network, t));
+  // Optional environment model
+  if (models.environment) {
+    models.environment.name = 'Environment';
+    group.add(models.environment);
+  }
+
   if (lakes) {
     group.add(makeMergedLakes(lakes, t));
   }

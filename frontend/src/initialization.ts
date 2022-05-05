@@ -4,7 +4,7 @@
 import * as _ from 'lodash';
 import * as three from 'three';
 
-import {AdditionalResponse, Network, ScenarioName, SimulationState, SumoSettings} from './api';
+import {AdditionalResponse, Network, Object3DLoaderParams, ScenarioName, SimulationState, SumoSettings} from './api';
 import {loadOBJFile} from './three-utils';
 import {promiseObject, FeatureCollection} from './utils';
 
@@ -12,15 +12,15 @@ import {OBJLoader} from 'three/examples/jsm/loaders/OBJLoader';
 import {MTLLoader} from 'three/examples/jsm/loaders/MTLLoader';
 import {GLTFLoader} from 'three/examples/jsm/loaders/GLTFLoader';
 
-import {SUPPORTED_VEHICLE_CLASSES} from './constants';
-import { MeshPhongMaterial } from 'three';
+import { SUPPORTED_VEHICLE_CLASSES, MODELS } from './constants';
+import { MeshPhongMaterial, Object3D } from 'three';
 
 export interface InitResources {
   availableScenarios: ScenarioName[];
   settings: SumoSettings | null;
   network: Network;
-  vehicles: {[vehicleClass: string]: three.Object3D[]};
-  tree: three.Object3D;
+  vehicles: {[vehicleClass: string]: (Object3D | null)[]};
+  models: {[name: string]: three.Object3D | null};
   additional: AdditionalResponse | null;
   arrows: {
     left: three.Object3D;
@@ -83,41 +83,61 @@ async function loadObjMtl(objFile: string, mtlFile: string): Promise<three.Objec
   });
 }
 
-function loadVehicles(): {[vehicleClass: string]: Promise<three.Object3D[]>} {
-  // map each vehicle class to an array of all possible models
-  return _.mapValues(SUPPORTED_VEHICLE_CLASSES, (v, k) =>
-    Promise.all(
-      _.map(v.models, async model => {
-        const {materialUrl, scale} = model;
-        let obj;
-        if (materialUrl) {
-          if (materialUrl.endsWith('.mtl')) {
-            obj = await loadObjMtl(model.objectUrl, materialUrl);
-          } else {
-            obj = await loadOBJFile(model.objectUrl, loadMaterial(materialUrl));
-          }
-        } else {
-          obj = await loadOBJFile(model.objectUrl);
-        }
-        if (scale) {
-          obj.scale.setScalar(scale);
-        }
-        return obj;
-      }),
-    ),
-  );
-}
-
-function loadTree(): Promise<three.Object3D> {
-  return new Promise(async (resolve, reject) => {
+async function loadGlb(file: string): Promise<three.Object3D> {
+  return new Promise<three.Object3D>((resolve, reject) => {
     const loader = new GLTFLoader();
-    loader.load('/trees/tree.glb', function(gltf) {
+    loader.load(file, function(gltf) {
       resolve(gltf.scene);
     }, undefined, function(error) {
       console.error(error);
+      reject();
     });
-
   });
+}
+
+async function loadObject3D(params: Object3DLoaderParams): Promise<Object3D | null> {
+  const { objectUrl, materialUrl, scale } = params;
+  let obj;
+
+  if (objectUrl.endsWith('.obj')) {
+    if (materialUrl) {
+      if (materialUrl.endsWith('.mtl')) {
+        obj = await loadObjMtl(objectUrl, materialUrl);
+      } else {
+        obj = await loadOBJFile(objectUrl, loadMaterial(materialUrl));
+      }
+    } else {
+      obj = await loadOBJFile(objectUrl);
+    }
+  }
+
+  if (objectUrl.endsWith('.glb')) {
+    obj = await loadGlb(objectUrl);
+  }
+
+  if (!obj) {
+    console.error("Cannot determine 3D object file type.")
+    return null;
+  }
+
+  if (scale) {
+    obj.scale.setScalar(scale);
+  }
+
+  return obj;
+}
+
+function loadVehicles(): {[vehicleClass: string]: Promise<(Object3D | null)[]>} {
+  // map each vehicle class to an array of all possible models
+  return _.mapValues(SUPPORTED_VEHICLE_CLASSES, (v, k) =>
+    Promise.all(
+      _.map(v.models, model => loadObject3D(model) )
+    )
+  );
+}
+
+function loadModels(): {[name: string]: Promise<Object3D | null>} {
+  return _.mapValues(MODELS, (v, k) => loadObject3D(v));
 }
 
 async function fetchJson<T>(url: string): Promise<T> {
@@ -168,7 +188,7 @@ export default async function init(): Promise<InitResources> {
       additional: fetchJsonAllowFail<AdditionalResponse>('additional'),
       availableScenarios: fetchJson<ScenarioName[]>('/scenarios'),
       vehicles: promiseObject(loadVehicles()),
-      tree: loadTree(),
+      models: promiseObject(loadModels()),
       water: fetchJson<FeatureCollection>('water'),
       settings: fetchJsonAllowFail<SumoSettings>('settings'),
       arrows: promiseObject({
