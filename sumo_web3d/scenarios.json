@@ -35,5 +35,11 @@
         "description": "Simple crossing with traffic lights",
         "config_file": "scenarios/simple-crossing/simple.sumocfg",
         "fcd_file": "scenarios/simple-crossing/fcd.xml"
+    },
+    {
+        "name": "osm-import",
+        "description": "Imported from Best.",
+        "config_file": "scenarios/osm-import/osm.sumocfg",
+        "fcd_file": "scenarios/osm-import/fcd.xml"
     }
 ]
