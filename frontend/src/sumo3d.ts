@@ -225,7 +225,8 @@ export default class Sumo3D {
     const obj = vehicle.mesh;
     const [x, y, z] = this.transform.sumoXyzToXyz([v.x, v.y, v.z]);
     const angle = three.MathUtils.degToRad(180 - v.angle);
-    obj.position.set(x - v.length / 2 * Math.sin(angle), y, z - v.length / 2 * Math.cos(angle));
+    const offset = v.length / 2 - 3.0;
+    obj.position.set(x - offset * Math.sin(angle), y, z - offset * Math.cos(angle));
     obj.rotation.set(0, angle, 0);
     if (v.type === 'SUMO_DEFAULT_TYPE' || v.type === 'passenger') {
       vehicle.setSignals(v.signals); // update turn & brake signals.
