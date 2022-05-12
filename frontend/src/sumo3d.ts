@@ -227,7 +227,7 @@ export default class Sumo3D {
     const angle = three.MathUtils.degToRad(180 - v.angle);
     obj.position.set(x - v.length / 2 * Math.sin(angle), y, z - v.length / 2 * Math.cos(angle));
     obj.rotation.set(0, angle, 0);
-    if (v.type === 'passenger') {
+    if (v.type === 'SUMO_DEFAULT_TYPE' || v.type === 'passenger') {
       vehicle.setSignals(v.signals); // update turn & brake signals.
     }
     obj.visible = !v.vehicle; // Don't render objects which are contained in vehicles.
