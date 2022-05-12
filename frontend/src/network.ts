@@ -410,10 +410,14 @@ function generateBuildings(
   t: Transform,
   forbiddenArea: Object3D,
 ): Object3D {
-  const meshes: [InstancedMesh, Matrix4][] = building.children[0].children.map(child => {
+  // building has one Group child, which has seven Mesh children
+  // TODO(jeroen): standardize this model loading process
+  const group = building.children[0];
+  const meshes: [InstancedMesh, Matrix4][] = group.children.map(child => {
+    const scale = child.scale.multiply(building.scale).multiply(group.scale);
     const meshTransform = new Matrix4()
       .multiply( new Matrix4().makeTranslation( ...child.position.toArray() ))
-      .multiply( new Matrix4().makeScale( ...child.scale.toArray() ))
+      .multiply( new Matrix4().makeScale( ...scale.toArray() ))
     
     const geometry = (child as Mesh).geometry.clone();
     const instance = new InstancedMesh(geometry, (child as Mesh).material, number)

@@ -121,7 +121,7 @@ async function loadObject3D(params: Object3DLoaderParams): Promise<Object3D | nu
   }
 
   if (scale) {
-    obj.scale.setScalar(scale);
+    obj.scale.multiplyScalar(scale);
   }
 
   return obj;

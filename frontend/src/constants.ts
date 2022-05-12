@@ -87,6 +87,6 @@ export const MODELS: {[name: string]: Object3DLoaderParams} = {
     objectUrl: '/models/osm.glb',
     position: { x: 550, y: 0, z: 414 }
   },
-  building: {objectUrl: '/models/flat.glb'},
+  building: {objectUrl: '/models/flat.glb', scale: 2.0},
   tlFixture: {objectUrl: '/models/tlFixture.glb'},
 }
