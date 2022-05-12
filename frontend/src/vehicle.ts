@@ -5,12 +5,12 @@ import * as three from 'three';
 import {Signals, VehicleInfo} from './api';
 
 // Turn/brake lights are temporarily disabled while we investigate performance issues around them.
-const SHOW_LIGHTS = false;
+const SHOW_LIGHTS = true;
 
 const OFFSET_X = 0.8;
 const OFFSET_Y = 0.644;
-const OFFSET_Z_FRONT = 1.8;
-const OFFSET_Z_BACK = -2.0;
+const OFFSET_Z_FRONT = -0.1;
+const OFFSET_Z_BACK = -4.0;
 const BRAKE_LIGHT_COLOR = 0xff0000;
 const SIGNAL_LIGHT_COLOR = 0x0000ff;
 
@@ -96,9 +96,9 @@ export default class Vehicle {
     if (!SHOW_LIGHTS) return;
     const isBraking = signals & Signals.BRAKE;
     const {userData} = this.mesh;
-    userData.leftBackLight.visible = isBraking;
-    userData.rightBackLight.visible = isBraking;
-    userData.leftFrontLight.visible = signals & Signals.LEFT;
-    userData.rightFrontLight.visible = signals & Signals.RIGHT;
+    userData.leftBackLight.visible = isBraking > 0;
+    userData.rightBackLight.visible = isBraking > 0;
+    userData.leftFrontLight.visible = (signals & Signals.LEFT) > 0;
+    userData.rightFrontLight.visible = (signals & Signals.RIGHT) > 0;
   }
 }
