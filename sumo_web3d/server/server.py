@@ -7,6 +7,7 @@ import functools
 import json
 import os
 import re
+import random
 import shlex
 import time
 import xml.etree.ElementTree as ET
@@ -105,13 +106,16 @@ def serialize_as_json_string(func):
     return func_wrapper
 
 
+def expand_path(filename):
+    return os.path.join(DIR, os.path.expanduser(os.path.expandvars(filename)))
+
 class Scenario(object):
 
     @classmethod
     def from_config_json(cls, scenarios_json):
         name = scenarios_json['name']
         config_file = scenarios_json['config_file']
-        sumocfg_file = os.path.join(DIR, os.path.expanduser(os.path.expandvars(config_file)))
+        sumocfg_file = expand_path(config_file)
         is_default = scenarios_json.get('is_default', False)
         config_dir = os.path.dirname(sumocfg_file)
         config = xmltodict.parse(open(sumocfg_file).read(), attr_prefix='')['configuration']
@@ -120,7 +124,12 @@ class Scenario(object):
         # recorded simulation
         fcd_file = scenarios_json.get('fcd_file')
         if fcd_file:
-            fcd_file = os.path.join(DIR, os.path.expanduser(os.path.expandvars(fcd_file)))
+            fcd_file = expand_path(fcd_file)
+
+        # lane distributions file provided by Anna
+        lane_distr_file = scenarios_json.get('lane_distr_file')
+        if lane_distr_file:
+            lane_distr_file = expand_path(lane_distr_file)
 
         additionals = {} if additional_files else None
         if additional_files:
@@ -144,10 +153,11 @@ class Scenario(object):
             additionals,
             settings,
             water,
-            fcd_file
+            fcd_file,
+            lane_distr_file
         )
 
-    def __init__(self, config_file, name, is_default, network, additional, settings, water, fcd_file):
+    def __init__(self, config_file, name, is_default, network, additional, settings, water, fcd_file, lane_distr_file):
         self.config_file = config_file
         self.display_name = name
         self.name = to_kebab_case(name)
@@ -157,6 +167,10 @@ class Scenario(object):
         self.settings = settings
         self.water = water
         self.fcd_file = fcd_file
+        self.lane_distr_file = lane_distr_file
+    
+    def is_live(self):
+        return self.fcd_file is None
 
 
 def person_to_dict(person):
@@ -307,6 +321,20 @@ def parse_fcd(fcd_file):
                 timestep = []
 
 
+def parse_lane_distr(lane_distr_file):
+    """Generator function that read the custom file format provided
+    by Anna containing the distribution of vehicles per lane per timestep."""
+
+    # with open(lane_distr_file, encoding='utf-8') as f:
+
+    ### TEMP ###
+    # for now just output random stuff
+    print('hoi')
+    while True:
+        distr = [random.random() for _ in range(10)]
+        yield distr
+
+
 def read_fcd_vehicle(vehicle):
     return {
         'x': float(vehicle['x']),
@@ -322,7 +350,7 @@ def read_fcd_vehicle(vehicle):
     }
 
 
-def read_next_step(timestep, vehicles):
+def read_next_step(timestep, vehicles, lane_distributions=None):
     """Given a list of vehicle data, produce a snapshot to be send to
     the frontend. Use this function instead of simulate_next_step in
     case the simulation has been prerecorded."""
@@ -346,6 +374,7 @@ def read_next_step(timestep, vehicles):
         'vehicles': vehicles_update,
         # 'lights': lights_update,
         'vehicle_counts': vehicle_counts,
+        'lane_distributions': lane_distributions,
         'simulate_secs': end_sim_secs - start_secs, # currently this yields near 0
         'snapshot_secs': end_update_secs - end_sim_secs
     }
@@ -355,18 +384,27 @@ def read_next_step(timestep, vehicles):
 
 async def run_simulation(websocket):
     global current_scenario
+
+    # floating car data (fcd) file recorded by SUMO
     if current_scenario.fcd_file:
         fcd_parser = parse_fcd(current_scenario.fcd_file)
 
+    # custom lane distribution format of Anna
+    lane_distr = current_scenario.lane_distr_file
+    if lane_distr or True: # TODO(jeroen): remove or True
+        lane_distr_parser = parse_lane_distr(current_scenario.lane_distr_file)
+
     while True:
         if simulation_status is STATUS_RUNNING:
-            if current_scenario.fcd_file:
-                # read recorded simulation
-                timestep, vehicles = next(fcd_parser)
-                snapshot = read_next_step(timestep, vehicles)
-            else:
+            if current_scenario.is_live():
                 # get next step from running sumo executable
                 snapshot = simulate_next_step()
+            else:
+                # read recorded vehicle positions and possibly lane distributions
+                timestep, vehicles = next(fcd_parser)
+                lane_distributions = next(lane_distr_parser) if lane_distr or True else None # TODO(jeroen): remove or True
+                print(lane_distributions)
+                snapshot = read_next_step(timestep, vehicles, lane_distributions=lane_distributions)
             
             snapshot['type'] = 'snapshot'
             await websocket.send(json.dumps(snapshot))
@@ -375,27 +413,32 @@ async def run_simulation(websocket):
             await asyncio.sleep(0)
 
 
-def cleanup_sumo_simulation(simulation_task):
+def cleanup_sumo_simulation(simulation_task, live):
     global last_lights, last_vehicles
     if simulation_task:
         if simulation_task.cancel():
             simulation_task = None
         last_vehicles = {}
         last_lights = {}
-        traci.close()
+        if live: # only need to close connection when SUMO was actually started
+            traci.close()
 
 
-async def websocket_simulation_control(sumo_start_fn, task, websocket, path):
+async def websocket_simulation_control(sumo_start_fn, websocket, path):
     # We use globals to communicate with the simulation coroutine for simplicity
-    global delay_length_ms
-    global simulation_status
+    global current_scenario, delay_length_ms, simulation_status
+
+    task = None
+    live = current_scenario.is_live()
     while True:
         try:
             raw_msg = await websocket.recv()
             msg = json.loads(raw_msg)
             if msg['type'] == 'action':
                 if msg['action'] == 'start':
-                    sumo_start_fn() # TODO: not necessary when running recorded simulation
+                    if live:
+                        sumo_start_fn()
+                        print('started sumo')
                     simulation_status = STATUS_RUNNING
                     loop = asyncio.get_event_loop()
                     task = loop.create_task(run_simulation(websocket))
@@ -405,7 +448,7 @@ async def websocket_simulation_control(sumo_start_fn, task, websocket, path):
                     simulation_status = STATUS_RUNNING
                 elif msg['action'] == 'cancel':
                     simulation_status = STATUS_OFF
-                    cleanup_sumo_simulation(task)
+                    cleanup_sumo_simulation(task, live)
                 elif msg['action'] == 'changeDelay':
                     delay_length_ms = msg['delayLengthMs']
                 else:
@@ -415,7 +458,7 @@ async def websocket_simulation_control(sumo_start_fn, task, websocket, path):
                 raise Exception('unrecognized websocket message')
         # we need to handle implicit cancelling, ie the client closing their browser
         except websockets.exceptions.ConnectionClosed:
-            cleanup_sumo_simulation(task)
+            cleanup_sumo_simulation(task, live)
             break
 
 
@@ -593,7 +636,7 @@ def get_default_scenario_name(scenarios):
     return defaults[0]
 
 
-def setup_http_server(task, scenario_file, scenarios):
+def setup_http_server(scenario_file, scenarios):
     app = web.Application()
 
     scenarios_response = [scenario_to_response_body(x) for x in scenarios.values()]
@@ -638,8 +681,6 @@ def setup_http_server(task, scenario_file, scenarios):
 
 def main(args):
     global current_scenario, scenarios, SCENARIOS_PATH
-    task = None
-    sumo_start_fn = functools.partial(start_sumo_executable, args.gui, args.sumo_args)
 
     if args.configuration_file:
         # Replace the built-in scenarios with a single, user-specified one.
@@ -657,11 +698,11 @@ def main(args):
     else:
         scenarios = load_scenarios_file({}, SCENARIOS_PATH)
 
+    sumo_start_fn = functools.partial(start_sumo_executable, args.gui, args.sumo_args)
     def setup_websockets_server():
         return functools.partial(
             websocket_simulation_control,
-            lambda: sumo_start_fn(getattr(current_scenario, 'config_file')),
-            task
+            lambda: sumo_start_fn(getattr(current_scenario, 'config_file'))
         )
 
     loop = asyncio.get_event_loop()
@@ -671,11 +712,11 @@ def main(args):
     ws_server = websockets.serve(ws_handler, '0.0.0.0', 5678)
 
     # http
-    app = setup_http_server(task, SCENARIOS_PATH, scenarios)
+    app = setup_http_server(SCENARIOS_PATH, scenarios)
     http_server = loop.create_server(
         app.make_handler(),
         '0.0.0.0',
-        os.environ["PORT"],
+        5000,
     )
 
     loop.run_until_complete(http_server)
