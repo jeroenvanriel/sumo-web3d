@@ -483,7 +483,7 @@ def simulate_next_step():
     end_update_secs = time.time()
 
     snapshot = {
-        'time': traci.simulation.getCurrentTime(),
+        'time': traci.simulation.getTime(),
         'vehicles': vehicles_update,
         'lights': lights_update,
         'vehicle_counts': vehicle_counts,
