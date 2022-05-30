@@ -135,13 +135,18 @@ function makeMergedEdgeGeometry(network: Network, t: Transform) {
 
   const edgesByTypes = _.groupBy(network.net.edge, 'type');
 
-  const edgeMaterials: three.Material[] = [
+  // these materials/textures do not change over time
+  const staticMaterials: three.Material[] = [
     materials.ROAD,
     materials.CROSSING,
     materials.CYCLEWAY,
     materials.RAILWAY,
     materials.WALKWAY,
   ];
+
+  // each lane gets its own material that may be dynamically updated
+  const laneMaterials: three.ShaderMaterial[] = [];
+  const laneMaterialsDict: { [laneId: string]: three.ShaderMaterial } = {};
 
   let components: BufferGeometry[] = [];
   let materialIndices: number[] = [];
@@ -154,48 +159,56 @@ function makeMergedEdgeGeometry(network: Network, t: Transform) {
       .map(e => makeEdgeGeometry(materialFn, t, e));
 
     for (const geometries of laneGeometries) {
-      const meshes: three.Mesh[] = [];
       for (const {geometry, material, edge, lane} of geometries) {
         const m = convertMeshToMeshAndPosition(new three.Mesh(geometry, material));
         m.mesh.userData = {
           name: `Edge ${edge.id}, Lane ${lane.id}`,
-          // TODO: only add this if the data is from OSM.
-          osmId: {
+          osmId: { // TODO: only add this if the data is from OSM.
             id: edge.id,
             type: 'way',
           },
         };
         osmIdToMeshes[edge.id] = osmIdToMeshes[edge.id] ? osmIdToMeshes[edge.id].concat([m]) : [m];
         osmIdToMeshes[lane.id] = [m];
-        meshes.push(m.mesh);
-      }
 
-      for (const child of meshes) {
-        const material = child.material;
-        const materialIndex = edgeMaterials.indexOf(material as three.Material);
-        const { geometry } = child;
-        if (!(geometry instanceof three.BufferGeometry)) { console.error('only BufferGeometry is supported'); return };
-        components.push(geometry);
-        materialIndices.push(materialIndex);
+        components.push(m.mesh.geometry);
+
+        if ( !staticMaterials.includes(material) ) {
+          // collect gradient materials
+          if ( !laneMaterials.includes( material as three.ShaderMaterial) ) {
+            laneMaterials.push( material as three.ShaderMaterial );
+          }
+          materialIndices.push( staticMaterials.length + laneMaterials.indexOf(material as three.ShaderMaterial) );
+          laneMaterialsDict[lane.id] = material as three.ShaderMaterial;
+        } else {
+          materialIndices.push( staticMaterials.indexOf(material) );
+        }
       }
     }
   });
 
   // merge all components together into one geometry object
   let mergedGeometry = mergeBufferGeometries(components, true);
+
+  // merge materials
+  let mergedMaterials = staticMaterials.concat(laneMaterials);
+
   // mergeBufferGeometries() renumbers the material indices for
   // groups from 0 onwards, so we set them manually afterwards
   _.forEach(mergedGeometry.groups, (group, i) => {
     group.materialIndex = materialIndices[i];
   })
 
-  const mesh = new three.Mesh(mergedGeometry, edgeMaterials);
-  mesh.receiveShadow = true;
+  const mesh = new three.Mesh(mergedGeometry, mergedMaterials);
+
   // TODO(danvk): Make roads cast shadows using two faces, one for the top and one for the bottom.
   // If we set mesh.castShadow = true here, roads seem to cast shadows on themselves, resulting in
   // some banding patterns on them.
+  mesh.receiveShadow = true;
+
   return {
     mesh,
+    laneMaterialsDict,
     osmIdToMeshes,
   };
 }
@@ -472,11 +485,11 @@ export function makeStaticObjects(
   lakes: FeatureCollection | null,
   models: InitResources['models'],
   t: Transform,
-): [three.Group, OsmIdToMesh] {
+): [three.Group, { [laneId: string]: three.ShaderMaterial }, OsmIdToMesh] {
   const group = new three.Group();
 
   // Road network
-  const {mesh: edgeMesh, osmIdToMeshes: osmIdToMesh} = makeMergedEdgeGeometry(network, t);
+  const {mesh: edgeMesh, laneMaterialsDict: laneMaterials, osmIdToMeshes: osmIdToMesh} = makeMergedEdgeGeometry(network, t);
   group.add(edgeMesh);
   group.add(makeMergedJunctions(network, t));
 
@@ -529,5 +542,5 @@ export function makeStaticObjects(
     }
   }
 
-  return [group, osmIdToMesh];
+  return [group, laneMaterials, osmIdToMesh];
 }

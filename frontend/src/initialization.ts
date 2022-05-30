@@ -4,7 +4,7 @@
 import * as _ from 'lodash';
 import * as three from 'three';
 
-import {AdditionalResponse, Network, Object3DLoaderParams, ScenarioName, SimulationState, SumoSettings} from './api';
+import {AdditionalResponse, Network, LaneMap, Object3DLoaderParams, ScenarioName, SimulationState, SumoSettings} from './api';
 import {loadOBJFile} from './three-utils';
 import {promiseObject, FeatureCollection} from './utils';
 
@@ -22,6 +22,7 @@ export interface InitResources {
   vehicles: {[vehicleClass: string]: (Object3D | null)[]};
   models: {[name: string]: three.Object3D | null};
   additional: AdditionalResponse | null;
+  lanemap: LaneMap | null,
   arrows: {
     left: three.Object3D;
     right: three.Object3D;
@@ -191,6 +192,7 @@ export default async function init(): Promise<InitResources> {
       models: promiseObject(loadModels()),
       water: fetchJson<FeatureCollection>('water'),
       settings: fetchJsonAllowFail<SumoSettings>('settings'),
+      lanemap: fetchJsonAllowFail<LaneMap>('lanemap'),
       arrows: promiseObject({
         left: loadOBJFile('/arrows/LeftArrow.obj'),
         right: loadOBJFile('/arrows/RightArrow.obj'),

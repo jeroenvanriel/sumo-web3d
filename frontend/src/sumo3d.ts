@@ -5,7 +5,7 @@ import * as Stats from 'stats.js';
 import * as three from 'three';
 import { Object3D } from 'three';
 
-import {LightInfo, SimulationState, VehicleInfo} from './api';
+import {LaneMap, LightInfo, SimulationState, VehicleInfo} from './api';
 import FollowVehicleControls from './controls/follow-controls';
 import PanAndRotateControls from './controls/pan-and-rotate-controls';
 import {XZPlaneMatrix4} from './controls/utils';
@@ -75,6 +75,8 @@ export default class Sumo3D {
   parentElement: HTMLElement;
 
   public osmIdToMeshes: OsmIdToMesh;
+  private laneMaterials: { [laneId: string]: three.ShaderMaterial };
+  private lanemap: LaneMap | null;
   private transform: Transform;
   private vehicles: {[vehicleId: string]: Vehicle};
   private camera: three.PerspectiveCamera;
@@ -159,6 +161,8 @@ export default class Sumo3D {
       this.transform,
       init.tree,
     );
+
+    this.lanemap = init.lanemap;
 
     this.scene.add(staticGroup);
     pointCameraAtScene(this.camera, this.scene);
@@ -483,6 +487,20 @@ export default class Sumo3D {
     });
     this.highlightedMeshes = [];
     return;
+  }
+
+  updateLaneMaterials(lane_distributions: number[][]) {
+    // TODO: use difference for lanes
+
+    _.forEach(this.laneMaterials, (material, laneId) => {
+      if (!this.lanemap) { throw new Error('lanemap must be provided when using lane gradients'); return; }
+      const laneNumber = this.lanemap[laneId];
+      if (!laneNumber) return;
+
+      material.uniforms['gradients'].value = lane_distributions[laneNumber];
+      material.uniforms['nGradients'].value = lane_distributions[laneNumber].length;
+      material.uniforms['gradientScale'].value = 1 / Math.max(...lane_distributions[laneNumber]);
+    });
   }
 
   onMouseDown(evnet: MouseEvent) {

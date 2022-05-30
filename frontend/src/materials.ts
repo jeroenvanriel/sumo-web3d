@@ -133,3 +133,59 @@ export const TRAFFIC_LIGHTS: {[color: string]: three.MeshLambertMaterial} = {
     side: three.DoubleSide,
   }),
 };
+
+
+export const getGradientMaterial = function(length: number) {
+  const vertexShader = `
+    varying vec2 vUv;
+
+    void main() {
+      vUv = uv;
+
+      vec4 localPosition = vec4( position, 1.);
+      vec4 worldPosition = modelMatrix * localPosition;
+
+      gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+    }`
+
+  const fragmentShader = `
+    uniform vec3 topColor;
+    uniform vec3 bottomColor;
+    uniform float length;
+    uniform float gradientScale;
+    uniform float gradients[30];
+    uniform int nGradients;
+
+    uniform sampler2D roadTexture;
+    varying vec2 vUv;
+
+    void main() {
+      float i = (length - vUv.x) / length;
+      float step = float(nGradients - 1);
+      int il = int(floor(i * step));
+      int ir = int(ceil(i * step));
+      float gl = gradients[il];
+      float gr = gradients[ir];
+      float g = mix(gl, gr, mod(i * step, 1.0));
+
+      vec4 overlayColor = vec4( mix( bottomColor, topColor, g * gradientScale), 1.0 );
+      gl_FragColor = mix( overlayColor, texture2D(roadTexture, vUv), 0.5);
+    }`
+
+  const material = new three.ShaderMaterial({
+    uniforms: {
+      roadTexture: { value: asphaltTexture },
+      bottomColor: { value: new three.Color(0, 0, 0) }, // low density
+      topColor: { value: new three.Color(1, 0, 0) }, // high density
+      length: { value: length }, // total lenght to draw (number of cars * lenght of car)
+      gradientScale: { value: 1.0 }, // may be updated according to actual distribution
+      gradients: { value: new Array(30) }, // provide the actual distribution here
+      nGradients: { value: 30 }, // the actual number of gradient values provided
+    },
+    vertexShader,
+    fragmentShader,
+  });
+
+  material.side = three.BackSide;
+  return material;
+}

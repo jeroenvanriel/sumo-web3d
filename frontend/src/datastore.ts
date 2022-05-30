@@ -72,6 +72,10 @@ export default function createStore(init: InitResources) {
         snapshotSecs: msg.snapshot_secs,
       };
 
+      if (msg.lane_distributions) {
+        sumo3d.updateLaneMaterials(msg.lane_distributions);
+      } 
+
       processDelta(msg.vehicles, {
         enter: (vehicleId, info) => sumo3d.createVehicleObject(vehicleId, info),
         update: (vehicleId, info) => sumo3d.updateVehicleObject(vehicleId, info),

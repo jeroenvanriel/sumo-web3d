@@ -51,6 +51,7 @@ export interface Snapshot {
   time: number;
   vehicles: Delta<VehicleInfo>;
   lights: Delta<LightInfo>;
+  lane_distributions: number[][];
   vehicle_counts: {[vClass: string]: number};
   /** time to run one step of the SUMO simulation */
   simulate_secs: number;
@@ -98,6 +99,14 @@ export interface Lane {
   speed: string;
   allow?: string;
   width?: string;
+}
+
+/**
+ * Response of the /lanemap endpoint. Maps textual lane identifiers to indices
+ * used to access the corresponding overflow queue length distribution.
+ */
+export interface LaneMap {
+  [id: string]: number
 }
 
 export type SpreadType = 'center' | 'right';
