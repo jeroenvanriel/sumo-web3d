@@ -401,24 +401,23 @@ async def run_simulation(websocket):
     global current_scenario
 
     # floating car data (fcd) file recorded by SUMO
-    if current_scenario.fcd_file:
-        fcd_parser = parse_fcd(current_scenario.fcd_file)
+    fcd_parser = parse_fcd(current_scenario.fcd_file) if current_scenario.fcd_file else None
 
     # custom lane distribution format of Anna
-    if current_scenario.lane_distr_file:
-        lane_distr_parser = parse_lane_distr(current_scenario.lane_distr_file)
+    lane_distr_parser = parse_lane_distr(current_scenario.lane_distr_file) if current_scenario.lane_distr_file else None
 
     while True:
         if simulation_status is STATUS_RUNNING:
-            if current_scenario.is_live():
-                # get next step from running sumo executable
-                snapshot = simulate_next_step()
-            else:
+            if fcd_parser:
                 # read recorded vehicle positions and possibly lane distributions
                 timestep, vehicles = next(fcd_parser)
                 snapshot = read_next_step(timestep, vehicles)
+            else:
+                # get next step from running sumo executable
+                snapshot = simulate_next_step()
             
             if lane_distr_parser:
+                print('dit hoort niet')
                 lane_distributions = next(lane_distr_parser) 
                 snapshot['lane_distributions'] = lane_distributions
 
