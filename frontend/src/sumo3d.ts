@@ -153,16 +153,16 @@ export default class Sumo3D {
       centerZ,
     );
 
+    this.lanemap = init.lanemap;
+
     let staticGroup: three.Group;
-    [staticGroup, this.osmIdToMeshes] = makeStaticObjects(
+    [staticGroup, this.laneMaterials, this.osmIdToMeshes] = makeStaticObjects(
       init.network,
       init.additional,
       init.water,
       this.transform,
-      init.tree,
+      (this.lanemap !== null)
     );
-
-    this.lanemap = init.lanemap;
 
     this.scene.add(staticGroup);
     pointCameraAtScene(this.camera, this.scene);

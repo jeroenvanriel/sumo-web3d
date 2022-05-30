@@ -94,7 +94,7 @@ function laneToGeometry(transform: Transform, edge: Edge, lane: Lane): three.Buf
   return lineString(coords, transform, style);
 }
 
-function laneToMaterial(type: Type, allowed: ClassLookup, edge: Edge, lane: Lane): three.Material {
+function laneToMaterial(dynamicLaneMaterials: boolean, type: Type, allowed: ClassLookup, edge: Edge, lane: Lane): three.Material {
   if (edge.function === 'crossing') {
     return materials.CROSSING;
   } else if (lane.allow && lane.allow.includes('pedestrian')) {
@@ -108,7 +108,11 @@ function laneToMaterial(type: Type, allowed: ClassLookup, edge: Edge, lane: Lane
   } else if (isRailway(allowed)) {
     return materials.RAILWAY;
   } else {
-    return materials.ROAD;
+    // generate new material
+    // TODO(jeroen): the lenght is not dependent on the lane lenght
+    // instead, provide (max number of cars * length of cars)
+    if (dynamicLaneMaterials) return materials.getGradientMaterial(+(lane.length));
+    else return materials.ROAD;
   }
 }
 
@@ -128,7 +132,7 @@ export function makeEdgeGeometry(
  * Create a single, merged geometry containing all the roads, footpaths and
  * cycleways in the network.
  */
-function makeMergedEdgeGeometry(network: Network, t: Transform) {
+function makeMergedEdgeGeometry(network: Network, t: Transform, dynamicLaneMaterials: boolean = false) {
   const idToType = _.keyBy(network.net.type || [], 'id');
   const idToAllowed = _.mapValues(idToType, type => indexAllowedClasses(type.allow));
 
@@ -152,7 +156,7 @@ function makeMergedEdgeGeometry(network: Network, t: Transform) {
 
   _.forEach(edgesByTypes, (edges, typeId) => {
     const allowed = idToAllowed[typeId] ? idToAllowed[typeId] : {};
-    const materialFn = laneToMaterial.bind(null, idToType[typeId], allowed);
+    const materialFn = laneToMaterial.bind(null, dynamicLaneMaterials, idToType[typeId], allowed);
     const laneGeometries = edges
       .filter(e => e.function !== 'internal' && e.function !== 'walkingarea')
       .map(e => makeEdgeGeometry(materialFn, t, e));
@@ -484,11 +488,12 @@ export function makeStaticObjects(
   lakes: FeatureCollection | null,
   models: InitResources['models'],
   t: Transform,
+  dynamicLaneMaterials: boolean = false
 ): [three.Group, { [laneId: string]: three.ShaderMaterial }, OsmIdToMesh] {
   const group = new three.Group();
 
   // Road network
-  const {mesh: edgeMesh, laneMaterialsDict: laneMaterials, osmIdToMeshes: osmIdToMesh} = makeMergedEdgeGeometry(network, t);
+  const {mesh: edgeMesh, laneMaterialsDict: laneMaterials, osmIdToMeshes: osmIdToMesh} = makeMergedEdgeGeometry(network, t, dynamicLaneMaterials);
   group.add(edgeMesh);
   group.add(makeMergedJunctions(network, t));
 
