@@ -417,7 +417,6 @@ async def run_simulation(websocket):
                 snapshot = simulate_next_step()
             
             if lane_distr_parser:
-                print('dit hoort niet')
                 lane_distributions = next(lane_distr_parser) 
                 snapshot['lane_distributions'] = lane_distributions
 
