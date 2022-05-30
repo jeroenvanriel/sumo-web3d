@@ -91,8 +91,7 @@ function laneToGeometry(transform: Transform, edge: Edge, lane: Lane): three.Buf
     uScaleFactor,
   };
 
-  const lineGeometry = lineString(coords, transform, style);
-  return lineGeometry;
+  return lineString(coords, transform, style);
 }
 
 function laneToMaterial(type: Type, allowed: ClassLookup, edge: Edge, lane: Lane): three.Material {
