@@ -11,6 +11,7 @@ import random
 import shlex
 import time
 import xml.etree.ElementTree as ET
+import ast
 
 from aiohttp import web
 import websockets
@@ -107,7 +108,16 @@ def serialize_as_json_string(func):
 
 
 def expand_path(filename):
+    if not filename:
+        return None
     return os.path.join(DIR, os.path.expanduser(os.path.expandvars(filename)))
+
+def parse_lanemap_file(lane_map_file):
+    if not lane_map_file:
+        return None
+    with open(lane_map_file) as f:
+        # note that this only works for the specific current format
+        return ast.literal_eval(f.readline())
 
 class Scenario(object):
 
@@ -130,6 +140,9 @@ class Scenario(object):
         lane_distr_file = scenarios_json.get('lane_distr_file')
         if lane_distr_file:
             lane_distr_file = expand_path(lane_distr_file)
+
+        # mapping from lane identifiers to lane distribution indices
+        lanemap = parse_lanemap_file(expand_path(scenarios_json.get('lanemap_file')))
 
         additionals = {} if additional_files else None
         if additional_files:
@@ -154,10 +167,11 @@ class Scenario(object):
             settings,
             water,
             fcd_file,
-            lane_distr_file
+            lane_distr_file,
+            lanemap
         )
 
-    def __init__(self, config_file, name, is_default, network, additional, settings, water, fcd_file, lane_distr_file):
+    def __init__(self, config_file, name, is_default, network, additional, settings, water, fcd_file, lane_distr_file, lanemap):
         self.config_file = config_file
         self.display_name = name
         self.name = to_kebab_case(name)
@@ -168,6 +182,7 @@ class Scenario(object):
         self.water = water
         self.fcd_file = fcd_file
         self.lane_distr_file = lane_distr_file
+        self.lanemap = lanemap
     
     def is_live(self):
         return self.fcd_file is None
@@ -325,14 +340,15 @@ def parse_lane_distr(lane_distr_file):
     """Generator function that read the custom file format provided
     by Anna containing the distribution of vehicles per lane per timestep."""
 
-    # with open(lane_distr_file, encoding='utf-8') as f:
-
-    ### TEMP ###
-    # for now just output random stuff
-    print('hoi')
-    while True:
-        distr = [random.random() for _ in range(10)]
-        yield distr
+    with open(lane_distr_file) as f:
+        lines = f.readlines()
+        data = []
+        for line in lines:
+            if line != '-\n':
+                data.append(ast.literal_eval(line))
+            else:
+                yield data
+                data = []
 
 
 def read_fcd_vehicle(vehicle):
@@ -350,7 +366,7 @@ def read_fcd_vehicle(vehicle):
     }
 
 
-def read_next_step(timestep, vehicles, lane_distributions=None):
+def read_next_step(timestep, vehicles):
     """Given a list of vehicle data, produce a snapshot to be send to
     the frontend. Use this function instead of simulate_next_step in
     case the simulation has been prerecorded."""
@@ -374,7 +390,6 @@ def read_next_step(timestep, vehicles, lane_distributions=None):
         'vehicles': vehicles_update,
         # 'lights': lights_update,
         'vehicle_counts': vehicle_counts,
-        'lane_distributions': lane_distributions,
         'simulate_secs': end_sim_secs - start_secs, # currently this yields near 0
         'snapshot_secs': end_update_secs - end_sim_secs
     }
@@ -390,8 +405,7 @@ async def run_simulation(websocket):
         fcd_parser = parse_fcd(current_scenario.fcd_file)
 
     # custom lane distribution format of Anna
-    lane_distr = current_scenario.lane_distr_file
-    if lane_distr or True: # TODO(jeroen): remove or True
+    if current_scenario.lane_distr_file:
         lane_distr_parser = parse_lane_distr(current_scenario.lane_distr_file)
 
     while True:
@@ -402,10 +416,12 @@ async def run_simulation(websocket):
             else:
                 # read recorded vehicle positions and possibly lane distributions
                 timestep, vehicles = next(fcd_parser)
-                lane_distributions = next(lane_distr_parser) if lane_distr or True else None # TODO(jeroen): remove or True
-                print(lane_distributions)
-                snapshot = read_next_step(timestep, vehicles, lane_distributions=lane_distributions)
+                snapshot = read_next_step(timestep, vehicles)
             
+            if lane_distr_parser:
+                lane_distributions = next(lane_distr_parser) 
+                snapshot['lane_distributions'] = lane_distributions
+
             snapshot['type'] = 'snapshot'
             await websocket.send(json.dumps(snapshot))
             await asyncio.sleep(delay_length_ms / 1000)
@@ -600,8 +616,8 @@ def load_scenarios_file(prev_scenarios, scenarios_file):
         new_scenarios = json.loads(f.read())
         new_scenarios_names = [to_kebab_case(x['name']) for x in new_scenarios]
         # throw error if there are duplicate name fields
-        duplicates = len(new_scenarios_names) == len(set(new_scenarios_names))
-        if not duplicates:
+        duplicates = len(new_scenarios_names) != len(set(new_scenarios_names))
+        if duplicates:
             raise Exception(
                 'Invalid scenarios.json, cannot have two scenarios with the'
                 'same kebab case name'
@@ -658,6 +674,10 @@ def setup_http_server(scenario_file, scenarios):
         '/scenarios/{scenario}/settings',
         functools.partial(
             scenario_attribute_route, scenario_file, scenarios, 'settings', 'viewsettings')
+    )
+    app.router.add_get(
+        '/scenarios/{scenario}/lanemap',
+        functools.partial(scenario_attribute_route, scenario_file, scenarios, 'lanemap', None)
     )
     app.router.add_get('/scenarios/{scenario}/', get_new_scenario)
 
