@@ -47,34 +47,5 @@
         "description": "Generated with Mathematica",
         "config_file": "scenarios/mathematica/testintersection1conf1.sumocfg",
         "fcd_file": "scenarios/mathematica/testfcd2.xml"
-    },
-    {
-        "name": "grid",
-        "description": "Grid 3x4",
-        "config_file": "scenarios/grid/grid.sumocfg",
-        "lane_distr_file": "scenarios/grid/distributions.txt",
-        "lanemap_file": "scenarios/grid/lane_indexes_inverted.txt"
-    },
-    {
-        "name": "grid2",
-        "description": "Grid 3x3",
-        "config_file": "scenarios/grid2/grid_3x3_2.sumocfg",
-        "fcd_file": "scenarios/grid2/grid_3x3_2_fcd.xml",
-        "lane_distr_file": "scenarios/grid2/grid_3x3_2_distributions.txt",
-        "lanemap_file": "scenarios/grid2/lane_indexes_inverted.txt"
-    },
-    {
-        "name": "grid3",
-        "description": "Grid 3x3",
-        "config_file": "scenarios/grid3/grid_3x3_2.sumocfg",
-        "fcd_file": "scenarios/grid3/grid_3x3_2_fcd (optimisation 2 min).xml",
-        "lane_distr_file": "scenarios/grid3/grid_3x3_2_cum_distributions_120 (2min optimisation).txt",
-        "lanemap_file": "scenarios/grid3/lane_indexes_inverted.txt"
-
-    },
-    {
-        "name": "multilane",
-        "description": "Demo for multiple parallel lanes",
-        "config_file": "scenarios/multilane/multilane.sumocfg"
     }
 ]
