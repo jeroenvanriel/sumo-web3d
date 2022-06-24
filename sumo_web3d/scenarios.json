@@ -2,8 +2,7 @@
     {
         "name": "bologna-acosta",
         "description": "Canonical SUMO simulation of Bologna, with some buildings added.",
-        "config_file": "scenarios/bologna-acosta/run.sumo.cfg",
-        "is_default": true
+        "config_file": "scenarios/bologna-acosta/run.sumo.cfg"
     },
     {
         "name": "downtown-toronto",
@@ -18,7 +17,8 @@
     {
         "name": "cross3ltl",
         "description": "An interesection with multi-lane roads and traffic lights",
-        "config_file": "scenarios/cross3ltl/test.sumocfg"
+        "config_file": "scenarios/cross3ltl/test.sumocfg",
+        "is_default": true
     },
     {
         "name": "pedestring striping",
@@ -41,5 +41,40 @@
         "description": "Imported from Best.",
         "config_file": "scenarios/osm-import/osm.sumocfg",
         "fcd_file": "scenarios/osm-import/fcd.xml"
+    },
+    {
+        "name": "mathematica",
+        "description": "Generated with Mathematica",
+        "config_file": "scenarios/mathematica/testintersection1conf1.sumocfg",
+        "fcd_file": "scenarios/mathematica/testfcd2.xml"
+    },
+    {
+        "name": "grid",
+        "description": "Grid 3x4",
+        "config_file": "scenarios/grid/grid.sumocfg",
+        "lane_distr_file": "scenarios/grid/distributions.txt",
+        "lanemap_file": "scenarios/grid/lane_indexes_inverted.txt"
+    },
+    {
+        "name": "grid2",
+        "description": "Grid 3x3",
+        "config_file": "scenarios/grid2/grid_3x3_2.sumocfg",
+        "fcd_file": "scenarios/grid2/grid_3x3_2_fcd.xml",
+        "lane_distr_file": "scenarios/grid2/grid_3x3_2_distributions.txt",
+        "lanemap_file": "scenarios/grid2/lane_indexes_inverted.txt"
+    },
+    {
+        "name": "grid3",
+        "description": "Grid 3x3",
+        "config_file": "scenarios/grid3/grid_3x3_2.sumocfg",
+        "fcd_file": "scenarios/grid3/grid_3x3_2_fcd (optimisation 2 min).xml",
+        "lane_distr_file": "scenarios/grid3/grid_3x3_2_cum_distributions_120 (2min optimisation).txt",
+        "lanemap_file": "scenarios/grid3/lane_indexes_inverted.txt"
+
+    },
+    {
+        "name": "multilane",
+        "description": "Demo for multiple parallel lanes",
+        "config_file": "scenarios/multilane/multilane.sumocfg"
     }
 ]

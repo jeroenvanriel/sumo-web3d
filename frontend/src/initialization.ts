@@ -128,11 +128,19 @@ async function loadObject3D(params: Object3DLoaderParams): Promise<Object3D | nu
   return obj;
 }
 
+/** Set the `castShadow` property to true on all relevant children. */
+async function enableVehicleShadows(model: Promise<Object3D | null>) {
+  const result = await model;
+  if (result != null)
+    _.forEach(result.children[0].children, child => child.castShadow = true);
+  return model;
+}
+
 function loadVehicles(): {[vehicleClass: string]: Promise<(Object3D | null)[]>} {
   // map each vehicle class to an array of all possible models
   return _.mapValues(SUPPORTED_VEHICLE_CLASSES, (v, k) =>
     Promise.all(
-      _.map(v.models, model => loadObject3D(model) )
+      _.map(v.models, model => enableVehicleShadows(loadObject3D(model)))
     )
   );
 }

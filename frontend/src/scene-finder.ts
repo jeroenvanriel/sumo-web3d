@@ -20,19 +20,21 @@ const temp = new three.Vector3();
 
 /** What angle (in degrees) does the center of the face make with the x-axis in the xz-plane? */
 function angleForFace(
-  face: three.Face3,
-  geometry: three.Geometry,
+  face: three.Face,
+  geometry: three.BufferGeometry,
   obj: three.Mesh,
   cameraPos: three.Vector3,
 ) {
-  const {vertices} = geometry;
+  // TODO(jeroen): make this work again
+  // const {vertices} = geometry;
   const {a, b, c} = face;
-  temp.addVectors(vertices[a], vertices[b]);
-  temp.add(vertices[c]);
+  // temp.addVectors(vertices[a], vertices[b]);
+  // temp.add(vertices[c]);
   temp.divideScalar(3);
   obj.localToWorld(temp);
   const {x, z} = temp;
-  return three.Math.radToDeg(Math.atan2(z - cameraPos.z, x - cameraPos.x));
+
+  return three.MathUtils.radToDeg(Math.atan2(z - cameraPos.z, x - cameraPos.x));
 }
 
 /** Returns a 360-element array, with counts of faces whose centers are in each direction. */
@@ -41,12 +43,13 @@ function getAngleCounts(scene: three.Object3D, cameraPos: three.Vector3): number
   scene.traverse(obj => {
     if (!(obj instanceof three.Mesh)) return;
     const {geometry} = obj;
-    if (!(geometry instanceof three.Geometry)) return;
-    for (const face of geometry.faces) {
-      let angleDegs = angleForFace(face, geometry, obj, cameraPos);
-      angleDegs = Math.floor((360 + angleDegs) % 360);
-      angleCounts[angleDegs] += 1;
-    }
+    if (!(geometry instanceof three.BufferGeometry)) return;
+    // TODO(jeroen): make this work with BufferGeometry
+    // for (const face of geometry.faces) {
+    //   let angleDegs = angleForFace(face, geometry, obj, cameraPos);
+    //   angleDegs = Math.floor((360 + angleDegs) % 360);
+    //   angleCounts[angleDegs] += 1;
+    // }
   });
   return angleCounts;
 }

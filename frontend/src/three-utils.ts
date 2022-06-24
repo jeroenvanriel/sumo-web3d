@@ -13,6 +13,8 @@ import {Feature} from './utils';
 
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader';
 import { BufferGeometry, Float32BufferAttribute } from 'three';
+import { mergeBufferGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils';
+
 
 function shapeFromVertices(vertices: number[][]) {
   const shape = new three.Shape();
@@ -26,73 +28,73 @@ function shapeFromVertices(vertices: number[][]) {
 }
 
 // Add UV mappings to geometries which lack them.
-function addUVMappingToGeometry(geometry: three.Geometry) {
-  // See https://stackoverflow.com/a/27317936/388951
-  geometry.computeBoundingBox();
-  const {min, max} = geometry.boundingBox;
-  const offset = new three.Vector2(0 - min.x, 0 - min.y);
-  const range = new three.Vector2(max.x - min.x, max.y - min.y);
-  const faces = geometry.faces;
+// function addUVMappingToGeometry(geometry: three.BufferGeometry) {
+//   // See https://stackoverflow.com/a/27317936/388951
+//   geometry.computeBoundingBox();
+//   const {min, max} = geometry.boundingBox;
+//   const offset = new three.Vector2(0 - min.x, 0 - min.y);
+//   const range = new three.Vector2(max.x - min.x, max.y - min.y);
+//   const faces = geometry.faces;
 
-  geometry.faceVertexUvs[0] = [];
+//   geometry.faceVertexUvs[0] = [];
 
-  for (let i = 0; i < faces.length; i++) {
-    const v1 = geometry.vertices[faces[i].a];
-    const v2 = geometry.vertices[faces[i].b];
-    const v3 = geometry.vertices[faces[i].c];
+//   for (let i = 0; i < faces.length; i++) {
+//     const v1 = geometry.attributes.position.array[faces[i].a];
+//     const v2 = geometry.attributes.position.array[faces[i].b];
+//     const v3 = geometry.attributes.position.array[faces[i].c];
 
-    geometry.faceVertexUvs[0].push([
-      new three.Vector2((v1.x + offset.x) / range.x, (v1.y + offset.y) / range.y),
-      new three.Vector2((v2.x + offset.x) / range.x, (v2.y + offset.y) / range.y),
-      new three.Vector2((v3.x + offset.x) / range.x, (v3.y + offset.y) / range.y),
-    ]);
-  }
-  geometry.uvsNeedUpdate = true;
-}
+//     geometry.faceVertexUvs[0].push([
+//       new three.Vector2((v1.x + offset.x) / range.x, (v1.y + offset.y) / range.y),
+//       new three.Vector2((v2.x + offset.x) / range.x, (v2.y + offset.y) / range.y),
+//       new three.Vector2((v3.x + offset.x) / range.x, (v3.y + offset.y) / range.y),
+//     ]);
+//   }
+//   geometry.uvsNeedUpdate = true;
+// }
 
 // For an extruded geometry, we do UV mapping differently for the top/bottom and the sides.
 // For the top/bottom, mapping the x/y coordinates directly produces reasonable results.
 // For the sides, "u" follows the perimeter of the polygon while "v" corresponds to the height.
-function addUVMappingToExtrudedGeometry(
-  geometry: three.ExtrudeGeometry,
-  vertices: number[][],
-  sideScale: number,
-  topBottomScale: number,
-) {
-  geometry.computeBoundingBox();
-  const {min} = geometry.boundingBox;
-  const offset = new three.Vector3(0 - min.x, 0 - min.y, 0 - min.z);
-  const faces = geometry.faces;
+// function addUVMappingToExtrudedGeometry(
+//   geometry: three.ExtrudeGeometry,
+//   vertices: number[][],
+//   sideScale: number,
+//   topBottomScale: number,
+// ) {
+//   geometry.computeBoundingBox();
+//   const {min} = geometry.boundingBox;
+//   const offset = new three.Vector3(0 - min.x, 0 - min.y, 0 - min.z);
+//   const faces = geometry.faces;
 
-  geometry.faceVertexUvs[0] = [];
-  for (const face of faces) {
-    const v1 = geometry.vertices[face.a];
-    const v2 = geometry.vertices[face.b];
-    const v3 = geometry.vertices[face.c];
+//   geometry.faceVertexUvs[0] = [];
+//   for (const face of faces) {
+//     const v1 = geometry.vertices[face.a];
+//     const v2 = geometry.vertices[face.b];
+//     const v3 = geometry.vertices[face.c];
 
-    // The faces can be distinguished by their normal vectors. For the sides, these point out.
-    if (face.normal.z === 0) {
-      // It's a side. u should follow the polyline around,
-      // whereas v should go up with the z-coordinate.
-      const d1 = polylineDistance(vertices, [v1.x, v1.y], true);
-      const d2 = polylineDistance(vertices, [v2.x, v2.y], true);
-      const d3 = polylineDistance(vertices, [v3.x, v3.y], true);
-      geometry.faceVertexUvs[0].push([
-        new three.Vector2(d1.dLine * sideScale, v1.z * sideScale),
-        new three.Vector2(d2.dLine * sideScale, v2.z * sideScale),
-        new three.Vector2(d3.dLine * sideScale, v3.z * sideScale),
-      ]);
-    } else {
-      // It's either the top or bottom. Use the x/y coordinates.
-      geometry.faceVertexUvs[0].push([
-        new three.Vector2((v1.x + offset.x) * topBottomScale, (v1.y + offset.y) * topBottomScale),
-        new three.Vector2((v2.x + offset.x) * topBottomScale, (v2.y + offset.y) * topBottomScale),
-        new three.Vector2((v3.x + offset.x) * topBottomScale, (v3.y + offset.y) * topBottomScale),
-      ]);
-    }
-  }
-  geometry.uvsNeedUpdate = true;
-}
+//     // The faces can be distinguished by their normal vectors. For the sides, these point out.
+//     if (face.normal.z === 0) {
+//       // It's a side. u should follow the polyline around,
+//       // whereas v should go up with the z-coordinate.
+//       const d1 = polylineDistance(vertices, [v1.x, v1.y], true);
+//       const d2 = polylineDistance(vertices, [v2.x, v2.y], true);
+//       const d3 = polylineDistance(vertices, [v3.x, v3.y], true);
+//       geometry.faceVertexUvs[0].push([
+//         new three.Vector2(d1.dLine * sideScale, v1.z * sideScale),
+//         new three.Vector2(d2.dLine * sideScale, v2.z * sideScale),
+//         new three.Vector2(d3.dLine * sideScale, v3.z * sideScale),
+//       ]);
+//     } else {
+//       // It's either the top or bottom. Use the x/y coordinates.
+//       geometry.faceVertexUvs[0].push([
+//         new three.Vector2((v1.x + offset.x) * topBottomScale, (v1.y + offset.y) * topBottomScale),
+//         new three.Vector2((v2.x + offset.x) * topBottomScale, (v2.y + offset.y) * topBottomScale),
+//         new three.Vector2((v3.x + offset.x) * topBottomScale, (v3.y + offset.y) * topBottomScale),
+//       ]);
+//     }
+//   }
+//   geometry.uvsNeedUpdate = true;
+// }
 
 // Add UV mappings to polyline geometries.
 // The "u" dimension follows the path of the polyline,
@@ -104,6 +106,7 @@ function addUVMappingToGeometryWithPolyline(
   geometry: three.BufferGeometry,
   points: number[][],
   width: number,
+  length: number,
   uScaleFactor: number,
   transform: Transform,
 ) {
@@ -128,7 +131,9 @@ function addUVMappingToGeometryWithPolyline(
     const d = polylineDistance(points, [vx, transform.bottom - vz]);
 
       // Scale dLine as requested. Rescale dPerp to go from 0 to 1.
-    uvs[2*vi + 0] = (d.dLine * uScaleFactor);
+    // TODO: make this work with gradients and normal shaders
+    uvs[2*vi + 0] = (d.dLine / length);
+    // uvs[2*vi + 0] = (d.dLine * uScaleFactor);
     uvs[2*vi + 1] = (d.dPerp / width + 0.5);
   }
   geometry.setAttribute('uv', new Float32BufferAttribute(uvs, 2));
@@ -138,7 +143,7 @@ function addUVMappingToGeometryWithPolyline(
 export function flatMeshFromVertices(vertices: number[][], material: three.Material) {
   const shape = shapeFromVertices(vertices);
   const geometry = new three.ShapeGeometry(shape);
-  addUVMappingToGeometry(geometry);
+  // addUVMappingToGeometry(geometry);
 
   const mesh = new three.Mesh(geometry, material);
   mesh.material.side = three.DoubleSide; // visible from above and below.
@@ -159,7 +164,7 @@ export function extrudedMeshFromVertices(
     depth: height,
     bevelEnabled: false,
   });
-  addUVMappingToExtrudedGeometry(geometry, vertices, topBottomUVScale, sideUVScale);
+  // addUVMappingToExtrudedGeometry(geometry, vertices, topBottomUVScale, sideUVScale);
   const mesh = new three.Mesh(geometry, materials as any);
   mesh.rotation.set(Math.PI / 2, 0, 0);
   mesh.position.setY(height);
@@ -176,6 +181,7 @@ export function lineString(
   points: number[][],
   transform: Transform,
   params: LineParams,
+  length: number
 ): three.BufferGeometry {
   const simplicialComplex = extrudePolyline({
     thickness: params.width,
@@ -227,6 +233,7 @@ export function lineString(
     geometry,
     points,
     params.width,
+    length,
     params.uScaleFactor || 1,
     transform,
   );
@@ -250,13 +257,13 @@ export function featureToGeometry(feature: Feature): three.BufferGeometry {
     const coordinates: number[][][][] = geometry.coordinates;
     const shapes = coordinates.map(polygonToShape);
     const geom = new three.ShapeGeometry(shapes);
-    addUVMappingToGeometry(geom);
+    // addUVMappingToGeometry(geom);
     return geom;
   } else if (geometry.type === 'Polygon') {
     const coordinates: number[][][] = geometry.coordinates;
     const shape = polygonToShape(coordinates);
     const geom = new three.ShapeGeometry(shape);
-    addUVMappingToGeometry(geom);
+    // addUVMappingToGeometry(geom);
     return geom;
   } else {
     throw new Error(`Geometry type ${geometry.type} not supported.`);
@@ -292,11 +299,15 @@ export function setMaterial(obj: three.Object3D, material: three.Material) {
 }
 
 /** Merge the mesh into the geometry, copying its userData onto the new faces. */
-export function mergeMeshWithUserData(geometry: three.Geometry, mesh: three.Mesh) {
-  const numFaces = geometry.faces.length;
-  geometry.mergeMesh(mesh);
-  for (let i = numFaces; i < geometry.faces.length; i++) {
-    (geometry.faces[i] as any).userData = mesh.userData;
-  }
-  return geometry;
+export function mergeMeshWithUserData(geometry: three.BufferGeometry, mesh: three.Mesh) {
+  // TODO(jeroen): make this work with BufferGeometry
+  // const numFaces = geometry.faces.length;
+  // geometry.mergeMesh(mesh);
+  // for (let i = numFaces; i < geometry.faces.length; i++) {
+  //   (geometry.faces[i] as any).userData = mesh.userData;
+  // }
+
+  return mergeBufferGeometries([mesh.geometry, geometry]);
+
+  // return geometry;
 }

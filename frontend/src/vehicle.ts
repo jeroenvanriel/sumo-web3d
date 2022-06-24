@@ -1,11 +1,12 @@
 // Copyright 2018 Sidewalk Labs | http://www.eclipse.org/legal/epl-v20.html
 import * as stringHash from 'string-hash';
 import * as three from 'three';
+import * as _ from 'lodash';
 
 import {Signals, VehicleInfo} from './api';
 
 // Turn/brake lights are temporarily disabled while we investigate performance issues around them.
-const SHOW_LIGHTS = true;
+const SHOW_LIGHTS = false;
 
 const OFFSET_X = 0.8;
 const OFFSET_Y = 0.644;

@@ -49,9 +49,10 @@ export default function createStore(init: InitResources) {
   };
 
   const {webSocket} = init;
+
   const sumo3d = new Sumo3D(init.sumoRootEl, init, {
-    onClick(point, sumoXY, objects) {
-      clickPoint(point, sumoXY, objects);
+    onClick(latLng, sumoXY, objects) {
+      clickPoint(latLng, sumoXY, objects);
     },
     onUnfollow: unfollowObjectPOV,
     onRemove: removeVehicleCallback,
@@ -161,11 +162,11 @@ export default function createStore(init: InitResources) {
   }
 
   function clickPoint(
-    point: LatLng | null,
+    latLng: LatLng | null,
     sumoPoint: number[] | null,
     objects: NameAndUserData[],
   ) {
-    state.clickedPoint = point;
+    state.clickedPoint = latLng;
     state.clickedSumoPoint = sumoPoint;
     state.clickedObjects = objects;
     state.clickedVehicleId = null;
@@ -195,6 +196,10 @@ export default function createStore(init: InitResources) {
           sumo3d.highlightByOsmId(osmId, false);
         }
       });
+    } else if (sumoPoint) {
+      // focus on this point by moving the camera
+      const [x, y, z] = sumoPoint;
+      sumo3d.moveCameraControlCenter(x, y, z)
     }
 
     stateChanged();

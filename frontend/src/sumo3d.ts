@@ -8,10 +8,11 @@ import { Object3D } from 'three';
 import {LaneMap, LightInfo, SimulationState, VehicleInfo} from './api';
 import FollowVehicleControls from './controls/follow-controls';
 import PanAndRotateControls from './controls/pan-and-rotate-controls';
+import {OrbitControls} from 'three/examples/jsm/controls/OrbitControls';
 import {XZPlaneMatrix4} from './controls/utils';
 import {getTransforms, LatLng, Transform} from './coords';
-import Postprocessing, {FOG_RATE} from './effects/postprocessing';
-import addSky from './effects/sky';
+import Postprocessing, {FOG_RATE, BLOOM_SCENE} from './effects/postprocessing';
+import {addSkybox, addLights} from './effects/sky';
 import {InitResources} from './initialization';
 import {HIGHLIGHT} from './materials';
 import {makeStaticObjects, MeshAndPosition, OsmIdToMesh} from './network';
@@ -46,7 +47,7 @@ export interface UserData {
 
 export interface SumoParams {
   onClick: (
-    point: LatLng | null,
+    latLng: LatLng | null,
     sumoXY: [number, number] | null,
     objects: NameAndUserData[],
   ) => any;
@@ -82,7 +83,7 @@ export default class Sumo3D {
   private camera: three.PerspectiveCamera;
   private scene: three.Scene;
   private renderer: three.WebGLRenderer;
-  private controls: PanAndRotateControls | FollowVehicleControls;
+  private controls: PanAndRotateControls | FollowVehicleControls | OrbitControls;
   public simulationState: SimulationState;
   private vClassObjects: {[vehicleClass: string]: three.Object3D[]};
   private trafficLights: TrafficLights;
@@ -112,8 +113,6 @@ export default class Sumo3D {
     this.highlightedMeshes = [];
     this.highlightedVehicles = [];
 
-    this.trafficLights = new TrafficLights(init);
-
     this.renderer = new three.WebGLRenderer();
     (this.renderer as any).setPixelRatio(window.devicePixelRatio);
     // disable the ability to right click in order to allow rotating with the right button
@@ -141,17 +140,11 @@ export default class Sumo3D {
     this.camera.position.set(centerX, initY, centerZ);
 
     this.gui = new dat.gui.GUI();
-    addSky(this.gui, this.scene, centerX, centerZ);
-    this.postprocessing = new Postprocessing(
-      this.camera,
-      this.scene,
-      this.renderer,
-      this.gui,
-      width,
-      height,
-      centerX,
-      centerZ,
-    );
+
+    addSkybox(this.gui, this.scene, centerX, centerZ);
+    addLights(this.gui, this.scene, centerX, centerZ);
+
+    this.trafficLights = new TrafficLights(init, this.gui);
 
     this.lanemap = init.lanemap;
 
@@ -160,11 +153,13 @@ export default class Sumo3D {
       init.network,
       init.additional,
       init.water,
+      init.models,
       this.transform,
       (this.lanemap !== null)
     );
 
     this.scene.add(staticGroup);
+
     pointCameraAtScene(this.camera, this.scene);
 
     this.scene.add(this.trafficLights.loadNetwork(init.network, this.transform));
@@ -173,6 +168,8 @@ export default class Sumo3D {
       this.trafficLights.addLogic(forceArray(init.additional.tlLogic));
     }
     this.groundPlane = this.scene.getObjectByName('Land') as Object3D<Event>;
+
+    // this.groundPlane.layers.toggle( BLOOM_SCENE );
 
     this.animate = this.animate.bind(this);
     this.moveCameraTo = this.moveCameraTo.bind(this);
@@ -188,10 +185,24 @@ export default class Sumo3D {
 
     parentElement.appendChild(this.renderer.domElement);
 
-    this.controls = new PanAndRotateControls(
+    // this.controls = new PanAndRotateControls(
+    //   this.camera,
+    //   this.renderer.domElement,
+    //   this.groundPlane,
+    // );
+    this.controls = new OrbitControls(this.camera, this.renderer.domElement);
+    this.controls.screenSpacePanning = false;
+    this.controls.update();
+
+    this.postprocessing = new Postprocessing(
       this.camera,
-      this.renderer.domElement,
-      this.groundPlane,
+      this.scene,
+      this.renderer,
+      this.gui,
+      width,
+      height,
+      centerX,
+      centerZ,
     );
 
     this.stats = new Stats();
@@ -338,10 +349,28 @@ export default class Sumo3D {
   }
 
   /** Point the camera down at some SUMO coordinates. */
-  moveCameraTo(sumoX: number, sumoY: number, sumoZ: number) {
+  moveCameraTo(sumoX: number, sumoY: number, sumoZ: number | null) {
     if (!(this.controls instanceof FollowVehicleControls)) {
+      if (sumoZ) {
+        const [x, y, z] = this.transform.sumoXyzToXyz([sumoX, sumoY, sumoZ]);
+        this.camera.position.set(x, y, z);
+      } else {
+        // if y is not provided, we just use the previous value
+        const y = this.camera.position.y;
+        const [x, z] = this.transform.xyToXz([sumoX, sumoY])
+        this.camera.position.set(x, y, z);
+      }
+    }
+  }
+
+  moveCameraControlCenter(sumoX: number, sumoY: number, sumoZ: number) {
+    // move the camera controls center of rotation to this point
+    console.log('center');
+  
+    if (this.controls instanceof OrbitControls) {
       const [x, y, z] = this.transform.sumoXyzToXyz([sumoX, sumoY, sumoZ]);
-      this.camera.position.set(x, y, z);
+      this.controls.target = new three.Vector3(x, y, z);
+      this.controls.update();
     }
   }
 

@@ -22,13 +22,14 @@ function ogaVehicle(type: string, color: string): Object3DLoaderParams {
   };
 }
 
-const CGT_SCALE = 1.2;
-const CGT_COLORS = ['red', 'black', 'brown', 'orange', 'white'];
+const CGT_SCALE = 1.1;
+const CGT_COLORS = ['red', 'blue', 'green', 'orange', 'grey', 'yellow'];
 
 function cgtVehicle(color: string): Object3DLoaderParams {
   return {
-    objectUrl: `/vehicles-new/clio_${color}.obj`,
-    materialUrl: `/vehicles-new/clio_${color}.mtl`,
+    // objectUrl: `/vehicles-new/clio_${color}.obj`,
+    // materialUrl: `/vehicles-new/clio_${color}.mtl`,
+    objectUrl: `/vehicles-new/clio-${color}.glb`,
     scale: CGT_SCALE,
   };
 }
@@ -38,6 +39,11 @@ export const SUPPORTED_VEHICLE_CLASSES: {[sumoVehicleClass: string]: SupportedVe
     label: 'car',
     // models: _.flatMap(OGA_TYPES, type => _.map(OGA_COLORS, color => ogaVehicle(type, color))),
     models: _.map(CGT_COLORS, color => cgtVehicle(color)),
+  },
+  passenger2: {
+    label: 'car',
+    // models: _.flatMap(OGA_TYPES, type => _.map(OGA_COLORS, color => ogaVehicle(type, color))),
+    models: [cgtVehicle('blue')]
   },
   bicycle: {
     label: 'bike',
@@ -82,11 +88,12 @@ export const SUPPORTED_VEHICLE_CLASSES: {[sumoVehicleClass: string]: SupportedVe
 };
 
 export const MODELS: {[name: string]: Object3DLoaderParams} = {
-  tree: {objectUrl: '/models/tree.glb'},
+  tree: {objectUrl: '/models/tree.glb', scale: 0.5},
   environment: {
     objectUrl: '/models/osm.glb',
     position: { x: 550, y: 0, z: 414 }
   },
-  building: {objectUrl: '/models/flat.glb', scale: 2.0},
+  building: {objectUrl: '/models/flat.glb', scale: 1.0},
+  trafficLight: {objectUrl: '/models/trafficLight.glb'},
   tlFixture: {objectUrl: '/models/tlFixture.glb'},
 }
