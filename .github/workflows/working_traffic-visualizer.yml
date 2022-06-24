@@ -32,6 +32,10 @@ jobs:
         
       # Optional: Add step to run tests here (PyTest, Django test suites, etc.)
       
+      - uses: borales/actions-yarn@v3.0.0
+        with:
+          cmd: install # will run `yarn install` command
+      
       - name: Upload artifact for deployment jobs
         uses: actions/upload-artifact@v2
         with:
