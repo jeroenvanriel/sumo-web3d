@@ -739,14 +739,14 @@ def main(args):
     http_server = loop.create_server(
         app.make_handler(),
         '0.0.0.0',
-        5000,
+        8000,
     )
 
     loop.run_until_complete(http_server)
     loop.run_until_complete(ws_server)
 
     print("""Listening on:
-    127.0.0.1:5000 (HTTP)
+    127.0.0.1:8000 (HTTP)
     127.0.0.1:5678 (WebSockets)
     """)
 
