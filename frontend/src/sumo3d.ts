@@ -3,7 +3,6 @@ import * as dat from 'dat.gui/build/dat.gui.js';
 import * as _ from 'lodash';
 import * as Stats from 'stats.js';
 import * as three from 'three';
-import { Object3D } from 'three';
 
 import {LaneMap, LightInfo, SimulationState, VehicleInfo} from './api';
 import FollowVehicleControls from './controls/follow-controls';
@@ -13,7 +12,7 @@ import {XZPlaneMatrix4} from './controls/utils';
 import {getTransforms, LatLng, Transform} from './coords';
 import Postprocessing, {FOG_RATE, BLOOM_SCENE} from './effects/postprocessing';
 import {addSkybox, addLights} from './effects/sky';
-import {InitResources} from './initialization';
+import {InitResources, Model} from './initialization';
 import {HIGHLIGHT} from './materials';
 import {makeStaticObjects, MeshAndPosition, OsmIdToMesh} from './network';
 import {pointCameraAtScene} from './scene-finder';
@@ -61,12 +60,6 @@ interface HighlightedMesh {
   highlightedMesh: three.Object3D;
 }
 
-interface HighlightedVehicle {
-  id: string;
-  originalMaterial: three.Material;
-  vehicle: Vehicle;
-}
-
 /**
  * Visualize a Sumo simulation using three.js.
  *
@@ -85,16 +78,16 @@ export default class Sumo3D {
   private renderer: three.WebGLRenderer;
   private controls: PanAndRotateControls | FollowVehicleControls | OrbitControls;
   public simulationState: SimulationState;
-  private vClassObjects: {[vehicleClass: string]: three.Object3D[]};
+  private vClassModels: {[vehicleClass: string]: Model[]};
   private trafficLights: TrafficLights;
-  public highlightedMeshes: HighlightedMesh[];
-  private highlightedVehicles: HighlightedVehicle[];
+  private highlightedMeshes: HighlightedMesh[];
+  private highlightedRoute: HighlightedMesh[];
+  private highlightedVehicles: Vehicle[];
   private gui: typeof dat.gui.GUI;
   private postprocessing: Postprocessing;
   private stats: Stats;
   private simTimePanel: Stats.Panel;
   private maxSimTimeMs: number;
-  private highlightedRoute: HighlightedMesh[];
   private groundPlane: three.Object3D;
   private cancelNextClick = false;
 
@@ -107,7 +100,7 @@ export default class Sumo3D {
 
     this.simulationState = init.simulationState;
     this.transform = getTransforms(init.network);
-    this.vClassObjects = init.vehicles;
+    this.vClassModels = init.vehicles;
     this.vehicles = {};
     this.highlightedRoute = [];
     this.highlightedMeshes = [];
@@ -167,7 +160,7 @@ export default class Sumo3D {
     if (init.additional && init.additional.tlLogic) {
       this.trafficLights.addLogic(forceArray(init.additional.tlLogic));
     }
-    this.groundPlane = this.scene.getObjectByName('Land') as Object3D<Event>;
+    this.groundPlane = this.scene.getObjectByName('Land') as three.Object3D<Event>;
 
     // this.groundPlane.layers.toggle( BLOOM_SCENE );
 
@@ -230,30 +223,11 @@ export default class Sumo3D {
     this.vehicles = {};
   }
 
-  // Helper function to bring the state of the object representing the vehicle
-  // up to date with its VehicleInfo.
-  updateVehicleMesh(vehicle: Vehicle) {
-    // In SUMO, the position of a vehicle is the front/center.
-    // But the rotation is around its center/center.
-    // Our models are built with (0, 0) at the center/center, so we rotate and then offset.
-    const v = vehicle.vehicleInfo;
-    const obj = vehicle.mesh;
-    const [x, y, z] = this.transform.sumoXyzToXyz([v.x, v.y, v.z]);
-    const angle = three.MathUtils.degToRad(180 - v.angle);
-    const offset = v.length / 2 - 3.0;
-    obj.position.set(x - offset * Math.sin(angle), y, z - offset * Math.cos(angle));
-    obj.rotation.set(0, angle, 0);
-    if (v.type === 'SUMO_DEFAULT_TYPE' || v.type === 'passenger') {
-      vehicle.setSignals(v.signals); // update turn & brake signals.
-    }
-    obj.visible = !v.vehicle; // Don't render objects which are contained in vehicles.
-  }
-
   createVehicleObject(vehicleId: string, info: VehicleInfo) {
-    const vehicle = Vehicle.fromInfo(this.vClassObjects, vehicleId, info);
+    const vehicle = Vehicle.fromInfo(this.vClassModels, vehicleId, info);
     if (vehicle) {
       this.vehicles[vehicleId] = vehicle;
-      this.updateVehicleMesh(vehicle);
+      vehicle.update(this.transform);
       this.scene.add(vehicle.mesh);
     }
   }
@@ -262,7 +236,7 @@ export default class Sumo3D {
     const vehicle = this.vehicles[vehicleId];
     if (vehicle) {
       _.extend(vehicle.vehicleInfo, update);
-      this.updateVehicleMesh(vehicle);
+      vehicle.update(this.transform);
     }
   }
 
@@ -473,25 +447,25 @@ export default class Sumo3D {
   }
 
   highlightByVehicleId(sumoId: string, changeCamera: boolean) {
-    if (this.vehicles[sumoId]) {
-      const originalMesh = this.vehicles[sumoId].mesh.clone();
-      const update = this.highlightObject(this.vehicles[sumoId].mesh);
-      this.highlightedVehicles.push({
-        vehicle: this.vehicles[sumoId],
-        id: sumoId,
-        originalMaterial: ((this.vehicles[sumoId].mesh.children[0] as three.Mesh).material as three.Material).clone(),
-      });
-      (this.vehicles[sumoId].mesh.children[0] as three.Mesh).material = ((update
-        .children[0] as three.Mesh).material as three.Material).clone();
-      const {position} = originalMesh;
-      if (changeCamera && position !== null) {
-        this.camera.position.copy(position);
-        this.camera.position.add(new three.Vector3(0, 50, 0));
-        this.camera.lookAt(position);
-        this.camera.updateProjectionMatrix();
-      }
+    if (!this.vehicles[sumoId])
+      return false; // not found
+
+    this.highlightedVehicles.push(this.vehicles[sumoId]);
+
+    // TODO(Jeroen): parameterize highlight color
+    // set red highlight
+    this.vehicles[sumoId].changeColor(new three.Color(1, 0, 0.5));
+
+    // focus on vehicle
+    const {position} = this.vehicles[sumoId].mesh;
+    if (changeCamera && position !== null) {
+      this.camera.position.copy(position);
+      this.camera.position.add(new three.Vector3(0, 50, 0));
+      this.camera.lookAt(position);
+      this.camera.updateProjectionMatrix();
     }
-    return this.highlightedVehicles.length > 0;
+    
+    return true; // found
   }
 
   unhighlightRoute() {
@@ -502,20 +476,14 @@ export default class Sumo3D {
   }
 
   unselectMeshes() {
-    const {removeVehicleObject, createVehicleObject} = this;
-    const remove = removeVehicleObject.bind(this);
-    const create = createVehicleObject.bind(this);
-    this.highlightedVehicles.forEach(vehicle => {
-      remove(vehicle.id);
-      create(vehicle.id, vehicle.vehicle.vehicleInfo);
-    });
+    this.highlightedVehicles.forEach(vehicle => vehicle.resetColor() );
     this.highlightedVehicles = [];
+
     this.highlightedMeshes.forEach(({highlightedMesh, originalMesh}) => {
       this.scene.remove(highlightedMesh);
       originalMesh.visible = true;
     });
     this.highlightedMeshes = [];
-    return;
   }
 
   updateLaneMaterials(lane_distributions: number[][]) {

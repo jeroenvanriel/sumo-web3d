@@ -4,6 +4,9 @@ import * as three from 'three';
 import * as _ from 'lodash';
 
 import {Signals, VehicleInfo} from './api';
+import { Model } from './initialization';
+import { Transform } from './coords';
+import { Color } from 'three';
 
 // Turn/brake lights are temporarily disabled while we investigate performance issues around them.
 const SHOW_LIGHTS = false;
@@ -15,30 +18,39 @@ const OFFSET_Z_BACK = -4.0;
 const BRAKE_LIGHT_COLOR = 0xff0000;
 const SIGNAL_LIGHT_COLOR = 0x0000ff;
 
+const SPEED_COLOR = false;
+
 export default class Vehicle {
   // TODO (Ananta): the frontend shouldn't need to retain a copy of all vehicle info.
   // Make it as lightweight as possible
   public vehicleInfo: VehicleInfo;
   public mesh: three.Group | three.Object3D | three.Mesh;
+  public id: string;
+
+  private baseColor: three.Color;
+  private baseColorMaterial: { color: three.Color };
+
+  private customColor: boolean = false;
 
   static fromInfo(
-    vClassObjects: {[vClass: string]: three.Object3D[]},
+    vClassObjects: {[vClass: string]: Model[]},
     vehicleId: string,
     info: VehicleInfo,
   ): Vehicle | null {
-    const objects = vClassObjects[info.vClass];
-    if (!objects) {
+    const models = vClassObjects[info.vClass];
+    if (!models) {
       console.warn(`Unsupported vehicle type: ${info.vClass}`);
       return null;
     }
-    const randomModelIndex = stringHash(vehicleId) % objects.length;
-    const vehicleObj = objects[randomModelIndex];
-    const mesh = vehicleObj.clone();
-    return new Vehicle(mesh, vehicleId, info);
+    const randomModelIndex = stringHash(vehicleId) % models.length;
+    const model = models[randomModelIndex];
+    return new Vehicle(model, vehicleId, info);
   }
 
-  private constructor(mesh: three.Group | three.Object3D | three.Mesh, vehicleId: string, info: VehicleInfo) {
-    mesh.name = vehicleId;
+  private constructor(model: Model, vehicleId: string, info: VehicleInfo) {
+    const mesh = model.object.clone();
+    this.id = vehicleId;
+    mesh.name = vehicleId; // TODO(Jeroen): check if this prop is still necessary
     mesh.userData = {
       type: info.type,
       vClass: info.vClass,
@@ -50,7 +62,65 @@ export default class Vehicle {
 
     this.vehicleInfo = info;
     this.mesh = mesh;
+
+    if (model.baseColorPart) {
+      this.mesh.traverse(obj => {
+        if (obj instanceof three.Mesh && _.has(obj.material, 'color') && obj.material.name == model.baseColorPart) {
+          // give each vehicle it's own material instance for the part that changes color (baseColorPart)
+          obj.material = obj.material.clone();
+          // keep a reference to this material for dynamically changing the color
+          this.baseColorMaterial = obj.material;
+        }
+      })
+    }
+    if (model.baseColor) {
+      this.baseColor = this.baseColorMaterial.color = model.baseColor;
+    } else {
+      this.baseColor = this.baseColorMaterial.color;
+    }
+
+    this.changeColor.bind(this);
+    this.resetColor.bind(this);
+    this.update.bind(this);
+
     return this;
+  }
+
+  update(t: Transform) {
+    // In SUMO, the position of a vehicle is the front/center.
+    // But the rotation is around its center/center.
+    // Our models are built with (0, 0) at the center/center, so we rotate and then offset.
+    const v = this.vehicleInfo;
+    const obj = this.mesh;
+    const [x, y, z] = t.sumoXyzToXyz([v.x, v.y, v.z]);
+    const angle = three.MathUtils.degToRad(180 - v.angle);
+    const offset = v.length / 2 - 3.0;
+    obj.position.set(x - offset * Math.sin(angle), y, z - offset * Math.cos(angle));
+    obj.rotation.set(0, angle, 0);
+    if (v.type === 'SUMO_DEFAULT_TYPE' || v.type === 'passenger') {
+      this.setSignals(v.signals); // update turn & brake signals.
+    }
+    obj.visible = !v.vehicle; // Don't render objects which are contained in vehicles.
+  }
+
+  setSpeedColor() {
+    // TODO(Jeroen): parameterize colors
+    // change color according to current speed
+    if (SPEED_COLOR && !this.customColor) {
+      const col = new Color(1, 0, 0).lerp(new Color(0, 1, 0), v.speed / 15);
+      this.changeColor(col);
+    }
+  }
+
+  changeColor(color: three.Color) {
+    this.customColor = true;
+    this.baseColorMaterial.color = color;
+  }
+
+  resetColor() {
+    this.customColor = false;
+    this.changeColor(this.baseColor);
+    this.setSpeedColor()
   }
 
   addLight(mesh: three.Object3D, x: number, y: number, z: number, lightColor: number) {

@@ -510,7 +510,7 @@ export function makeStaticObjects(
 
   // Trees
   if (models.tree) {
-    const treesMesh = generateTrees(models.tree, 30, t, group);
+    const treesMesh = generateTrees(models.tree.object, 30, t, group);
     group.add(treesMesh);
   }
 

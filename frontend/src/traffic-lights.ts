@@ -10,7 +10,7 @@ import * as dat from 'dat.gui/build/dat.gui.js';
 
 import {Network, TlLogic} from './api';
 import {Transform} from './coords';
-import {InitResources} from './initialization';
+import {InitResources, Model} from './initialization';
 import {TRAFFIC_LIGHTS} from './materials';
 import {parseShape} from './sumo-utils';
 import {setMaterial} from './three-utils';
@@ -32,7 +32,7 @@ export default class TrafficLights {
   private lightCycles: {[programId: string]: {[lightId: string]: TlLogic}} = {};
   private currentPrograms: {[lightId: string]: string} = {};
   private arrows: InitResources['arrows'];
-  private trafficLight: three.Object3D;
+  private trafficLight: Model;
 
   private tlsGroup: three.Group;
   private tlsOffset = {offset: 6, prev: 0};
@@ -98,7 +98,7 @@ export default class TrafficLights {
 
       // only add a fixture when the first arrow is added
       if (lightCounts[laneId] == 1) {
-        const fixture = this.trafficLight.clone();
+        const fixture = this.trafficLight.object.clone();
         fixture.position.set(x, y, z);
         fixture.rotation.set(0, yRotation, 0);
         this.tlsGroup.add(fixture);

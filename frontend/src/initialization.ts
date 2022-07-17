@@ -4,7 +4,7 @@
 import * as _ from 'lodash';
 import * as three from 'three';
 
-import {AdditionalResponse, Network, LaneMap, Object3DLoaderParams, ScenarioName, SimulationState, SumoSettings} from './api';
+import {AdditionalResponse, Network, LaneMap, ScenarioName, SimulationState, SumoSettings} from './api';
 import {loadOBJFile} from './three-utils';
 import {promiseObject, FeatureCollection} from './utils';
 
@@ -13,14 +13,32 @@ import {MTLLoader} from 'three/examples/jsm/loaders/MTLLoader';
 import {GLTFLoader} from 'three/examples/jsm/loaders/GLTFLoader';
 
 import { SUPPORTED_VEHICLE_CLASSES, MODELS } from './constants';
-import { MeshPhongMaterial, Object3D } from 'three';
+import { Color, Mesh, MeshPhongMaterial, Object3D } from 'three';
+
+export interface ModelParams {
+  objectUrl: string;
+  materialUrl?: string;
+  scale?: number;
+  position?: { x: number, y: number, z: number };
+  baseColor?: Color,
+  baseColorPart?: string,
+}
+
+export interface Model extends ModelParams {
+  object: three.Object3D | three.Mesh | three.Group,
+}
+
+export interface SupportedVehicle {
+  label: string; // colloquial name, for display use only
+  models: ModelParams[];
+}
 
 export interface InitResources {
   availableScenarios: ScenarioName[];
   settings: SumoSettings | null;
   network: Network;
-  vehicles: {[vehicleClass: string]: (Object3D | null)[]};
-  models: {[name: string]: three.Object3D | null};
+  vehicles: {[vehicleClass: string]: Model[]};
+  models: {[name: string]: Model};
   additional: AdditionalResponse | null;
   lanemap: LaneMap | null,
   arrows: {
@@ -96,47 +114,42 @@ async function loadGlb(file: string): Promise<three.Object3D> {
   });
 }
 
-async function loadObject3D(params: Object3DLoaderParams): Promise<Object3D | null> {
+async function loadObject3D(params: ModelParams): Promise<Model> {
   const { objectUrl, materialUrl, scale } = params;
-  let obj;
+  let object = new Object3D();
 
   if (objectUrl.endsWith('.obj')) {
     if (materialUrl) {
       if (materialUrl.endsWith('.mtl')) {
-        obj = await loadObjMtl(objectUrl, materialUrl);
+        object = await loadObjMtl(objectUrl, materialUrl);
       } else {
-        obj = await loadOBJFile(objectUrl, loadMaterial(materialUrl));
+        object = await loadOBJFile(objectUrl, loadMaterial(materialUrl));
       }
     } else {
-      obj = await loadOBJFile(objectUrl);
+      object = await loadOBJFile(objectUrl);
     }
-  }
-
-  if (objectUrl.endsWith('.glb')) {
-    obj = await loadGlb(objectUrl);
-  }
-
-  if (!obj) {
+  } else if (objectUrl.endsWith('.glb')) {
+    object = await loadGlb(objectUrl);
+  } else {
     console.error("Cannot determine 3D object file type.")
-    return null;
   }
 
-  if (scale) {
-    obj.scale.multiplyScalar(scale);
+  if (scale && object) {
+    object.scale.multiplyScalar(scale);
   }
 
-  return obj;
+  return { object: object, ...params };
 }
 
 /** Set the `castShadow` property to true on all relevant children. */
-async function enableVehicleShadows(model: Promise<Object3D | null>) {
-  const result = await model;
-  if (result != null)
-    _.forEach(result.children[0].children, child => child.castShadow = true);
+async function enableVehicleShadows(model: Promise<Model>) {
+  const object = (await model).object;
+  if (object != null)
+    _.forEach(object.children[0].children, child => child.castShadow = true);
   return model;
 }
 
-function loadVehicles(): {[vehicleClass: string]: Promise<(Object3D | null)[]>} {
+function loadVehicles(): {[vehicleClass: string]: Promise<Model[]>} {
   // map each vehicle class to an array of all possible models
   return _.mapValues(SUPPORTED_VEHICLE_CLASSES, (v, k) =>
     Promise.all(
@@ -145,7 +158,7 @@ function loadVehicles(): {[vehicleClass: string]: Promise<(Object3D | null)[]>} 
   );
 }
 
-function loadModels(): {[name: string]: Promise<Object3D | null>} {
+function loadModels(): {[name: string]: Promise<Model>} {
   return _.mapValues(MODELS, (v, k) => loadObject3D(v));
 }
 
