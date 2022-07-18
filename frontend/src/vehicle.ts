@@ -18,7 +18,7 @@ const OFFSET_Z_BACK = -4.0;
 const BRAKE_LIGHT_COLOR = 0xff0000;
 const SIGNAL_LIGHT_COLOR = 0x0000ff;
 
-const SPEED_COLOR = false;
+const SPEED_COLOR = true;
 
 export default class Vehicle {
   // TODO (Ananta): the frontend shouldn't need to retain a copy of all vehicle info.
@@ -82,6 +82,7 @@ export default class Vehicle {
     this.changeColor.bind(this);
     this.resetColor.bind(this);
     this.update.bind(this);
+    this.setSpeedColor.bind(this);
 
     return this;
   }
@@ -101,14 +102,16 @@ export default class Vehicle {
       this.setSignals(v.signals); // update turn & brake signals.
     }
     obj.visible = !v.vehicle; // Don't render objects which are contained in vehicles.
+
+    this.setSpeedColor();
   }
 
   setSpeedColor() {
     // TODO(Jeroen): parameterize colors
     // change color according to current speed
     if (SPEED_COLOR && !this.customColor) {
-      const col = new Color(1, 0, 0).lerp(new Color(0, 1, 0), v.speed / 15);
-      this.changeColor(col);
+      const col = new Color(1, 0, 0).lerp(new Color(0, 1, 0), this.vehicleInfo.speed / 15);
+      this.baseColorMaterial.color = col;
     }
   }
 
