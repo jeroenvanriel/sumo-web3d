@@ -334,7 +334,8 @@ function makeBusStop(busStop: BusStop, lane: Lane, t: Transform): three.Mesh {
   // By default, a bus stop is half the width of a lane and straddles its right edge.
   const laneWidth = Number(lane.width || DEFAULT_LANE_WIDTH_M);
   const xys = offsetLineSegment([start, end], laneWidth / 2);
-  const geom = lineString(xys, t, {width: laneWidth / 2});
+  const length = 10; // TODO(Jeroen): what exactly is the length?
+  const geom = lineString(xys, t, {width: laneWidth / 2}, length);
   const stopObj = new three.Mesh(geom, materials.BUS_STOP);
   stopObj.userData = {
     type: 'busstop',
