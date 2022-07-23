@@ -22,7 +22,7 @@ import init from './initialization';
         unfollowObjectPOV={store.actions.unfollowObjectPOV}
         toggleRouteObjectHighlighted={store.actions.toggleRouteObjectHighlighted}
         onChangeDelayMs={store.actions.changeDelay}
-        onFocusOnVehicleOfClass={store.actions.focusOnVehicleOfClass}
+        onFocusOnVehicleOfType={store.actions.focusOnVehicleOfType}
         onFocusOnTrafficLight={store.actions.focusOnTrafficLight}
         handleSearch={store.actions.handleSearch}
         deselectSearch={store.actions.deselectSearch}
