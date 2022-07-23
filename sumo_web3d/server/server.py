@@ -41,7 +41,8 @@ parser.add_argument(
 # Base directory for sumo_web3d
 DIR = os.path.join(os.path.dirname(__file__), '..')
 
-SCENARIOS_PATH = os.path.join(DIR, 'scenarios.json')
+SCENARIOS_PATH = os.path.join(DIR, '../scenarios/scenarios.json')
+SCENARIOS_DIR = os.path.join(DIR, '../scenarios/')
 NO_CACHE_HEADER = {'cache-control': 'no-cache'}
 
 # We use these to tell TraCI which parameters we want to track.
@@ -110,7 +111,7 @@ def serialize_as_json_string(func):
 def expand_path(filename):
     if not filename:
         return None
-    return os.path.join(DIR, os.path.expanduser(os.path.expandvars(filename)))
+    return os.path.join(SCENARIOS_DIR, os.path.expanduser(os.path.expandvars(filename)))
 
 def parse_lanemap_file(lane_map_file):
     if not lane_map_file:
