@@ -357,6 +357,12 @@ def parse_lane_distr(lane_distr_file):
                 data = [ line.replace('], [', '') ]
 
 
+def parse_color(vehicle):
+    return { # list [r, g, b] with [0, 255]
+        'color': list(map(str.strip, vehicle['color'].split(',')))
+        } if 'color' in vehicle else {}
+
+
 def read_fcd_vehicle(vehicle):
     if vehicle['type'] == 'DEFAULT_VEHTYPE':
         vehicle['type'] = 'car'
@@ -371,6 +377,7 @@ def read_fcd_vehicle(vehicle):
         'length': 4.5,
         'width': 1.8,
         'signals': 0,
+        **parse_color(vehicle),
     }
 
 

@@ -3,29 +3,32 @@ import * as stringHash from 'string-hash';
 import * as three from 'three';
 import * as _ from 'lodash';
 
-import {Signals, VehicleInfo} from './api';
+import { Signals, VehicleInfo } from './api';
 import { Model } from './initialization';
 import { Transform } from './coords';
 import { Color } from 'three';
-
-// Turn/brake lights are temporarily disabled while we investigate performance issues around them.
-const SHOW_LIGHTS = false;
 
 const OFFSET_X = 0.8;
 const OFFSET_Y = 0.644;
 const OFFSET_Z_FRONT = -0.1;
 const OFFSET_Z_BACK = -4.0;
+
+// Turn/brake lights are temporarily disabled while we investigate performance issues around them.
+const SHOW_LIGHTS = false;
+
 const BRAKE_LIGHT_COLOR = 0xff0000;
 const SIGNAL_LIGHT_COLOR = 0x0000ff;
 
 const SPEED_COLOR = true;
+const SPEED_COLOR_LOW = new Color(1, 0, 0);
+const SPEED_COLOR_HIGH = new Color(0, 1, 0);
 
 export default class Vehicle {
   // TODO (Ananta): the frontend shouldn't need to retain a copy of all vehicle info.
   // Make it as lightweight as possible
-  public vehicleInfo: VehicleInfo;
   public mesh: three.Group | three.Object3D | three.Mesh;
   public id: string;
+  public vehicleInfo: VehicleInfo;
 
   private baseColor: three.Color;
   private baseColorMaterial: { color: three.Color };
@@ -49,7 +52,10 @@ export default class Vehicle {
 
   private constructor(model: Model, vehicleId: string, info: VehicleInfo) {
     const mesh = model.object.clone();
+    this.mesh = mesh;
     this.id = vehicleId;
+    this.vehicleInfo = info;
+
     mesh.name = vehicleId; // TODO(Jeroen): check if this prop is still necessary
     mesh.userData = {
       type: info.type,
@@ -60,29 +66,30 @@ export default class Vehicle {
       this.setupLights(mesh.userData, mesh);
     }
 
-    this.vehicleInfo = info;
-    this.mesh = mesh;
-
-    if (model.baseColorPart) {
+    if (model.baseColorPart) { // model needs to specify the part (baseColorPart) that changes color
+      // locate that part
       this.mesh.traverse(obj => {
         if (obj instanceof three.Mesh && _.has(obj.material, 'color') && obj.material.name == model.baseColorPart) {
-          // give each vehicle it's own material instance for the part that changes color (baseColorPart)
+          // each vehicle gets it's own material instance for the part that changes color
           obj.material = obj.material.clone();
           // keep a reference to this material for dynamically changing the color
           this.baseColorMaterial = obj.material;
         }
       })
     }
-    if (model.baseColor) {
+    if (info.color) { // use color in vehicle info
+      console.log("reading color from vehicle info")
+      this.baseColor = this.baseColorMaterial.color = new Color(...info.color);
+    } else if (model.baseColor) { // ...otherwise see if model provides a base color
       this.baseColor = this.baseColorMaterial.color = model.baseColor;
-    } else {
+    } else { // ...or just set the color that is already in the model
       this.baseColor = this.baseColorMaterial.color;
     }
 
+    this.update.bind(this);
+    this.updateColor.bind(this);
     this.changeColor.bind(this);
     this.resetColor.bind(this);
-    this.update.bind(this);
-    this.setSpeedColor.bind(this);
 
     return this;
   }
@@ -103,14 +110,16 @@ export default class Vehicle {
     }
     obj.visible = !v.vehicle; // Don't render objects which are contained in vehicles.
 
-    this.setSpeedColor();
+    this.updateColor();
   }
 
-  setSpeedColor() {
-    // TODO(Jeroen): parameterize colors
-    // change color according to current speed
-    if (SPEED_COLOR && !this.customColor) {
-      const col = new Color(1, 0, 0).lerp(new Color(0, 1, 0), this.vehicleInfo.speed / 15);
+  updateColor() {
+    if (this.vehicleInfo.color) { // use the provied color
+      this.baseColor = this.baseColorMaterial.color = new Color(...this.vehicleInfo.color);
+    } else if (SPEED_COLOR && !this.customColor) {
+      // TODO(Jeroen): parameterize max speed
+      // change color according to current speed
+      const col = SPEED_COLOR_LOW.lerp(SPEED_COLOR_HIGH, this.vehicleInfo.speed / 15);
       this.baseColorMaterial.color = col;
     }
   }
@@ -123,7 +132,7 @@ export default class Vehicle {
   resetColor() {
     this.customColor = false;
     this.changeColor(this.baseColor);
-    this.setSpeedColor()
+    this.updateColor();
   }
 
   addLight(mesh: three.Object3D, x: number, y: number, z: number, lightColor: number) {

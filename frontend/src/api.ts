@@ -15,6 +15,7 @@ export interface VehicleInfo {
   signals: number; // bitset of Signals.
   vehicle: string | null; // for a person, are they in a vehicle?
   vClass: string;
+  color: [number, number, number] | null; // RGB with [0,255]
 }
 
 export enum Signals {
