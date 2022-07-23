@@ -6,6 +6,9 @@ dist
 node_modules
 
 
+# just ignore scenarios by default
+# add examples manually, if necessary
+scenarios/
 # FCD files are generally too big
 *fcd.xml
 
