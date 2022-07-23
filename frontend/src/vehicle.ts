@@ -33,13 +33,13 @@ export default class Vehicle {
   private customColor: boolean = false;
 
   static fromInfo(
-    vClassObjects: {[vClass: string]: Model[]},
+    vTypeObjects: {[vType: string]: Model[]},
     vehicleId: string,
     info: VehicleInfo,
   ): Vehicle | null {
-    const models = vClassObjects[info.vClass];
+    const models = vTypeObjects[info.type];
     if (!models) {
-      console.warn(`Unsupported vehicle type: ${info.vClass}`);
+      console.warn(`Unsupported vehicle type: ${info.type}`);
       return null;
     }
     const randomModelIndex = stringHash(vehicleId) % models.length;

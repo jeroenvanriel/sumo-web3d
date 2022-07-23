@@ -2,7 +2,7 @@
 import * as _ from 'lodash';
 
 import {Delta, ScenarioName, SimulationStatus, VehicleInfo, WebsocketMessage} from './api';
-import {SUPPORTED_VEHICLE_CLASSES} from './constants';
+import {SUPPORTED_VEHICLE_TYPES} from './constants';
 import {LatLng} from './coords';
 import {InitResources} from './initialization';
 import Sumo3D, {NameAndUserData, SumoState, SUMO_ENDPOINT} from './sumo3d';
@@ -181,9 +181,9 @@ export default function createStore(init: InitResources) {
     sumo3d.unselectMeshes();
 
     // Check clicked objects for a vehicle
-    const validVehicleClasses = Object.keys(SUPPORTED_VEHICLE_CLASSES);
+    const validVehicleTypes = Object.keys(SUPPORTED_VEHICLE_TYPES);
     const clickedVehicle = _.find(objects, object =>
-      _.includes(validVehicleClasses, object.vClass),
+      _.includes(validVehicleTypes, object.type),
     );
     state.clickedVehicleId = clickedVehicle ? clickedVehicle.name : null;
     state.clickedVehicleInfo = clickedVehicle ? sumo3d.getVehicleInfo(clickedVehicle.name) : null;
@@ -246,8 +246,8 @@ export default function createStore(init: InitResources) {
     stateChanged();
   }
 
-  function focusOnVehicleOfClass(vehicleClass: string) {
-    sumo3d.moveCameraToRandomVehicleOfClass(vehicleClass);
+  function focusOnVehicleOfType(vehicleType: string) {
+    sumo3d.moveCameraToRandomVehicleOfType(vehicleType);
   }
 
   function focusOnTrafficLight() {
@@ -356,7 +356,7 @@ export default function createStore(init: InitResources) {
       unfollowObjectPOV,
       toggleRouteObjectHighlighted,
       moveCameraToLatitudeAndLongitude,
-      focusOnVehicleOfClass,
+      focusOnVehicleOfType,
       focusOnTrafficLight,
     },
   };

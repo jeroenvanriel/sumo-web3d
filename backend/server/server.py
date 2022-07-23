@@ -358,17 +358,19 @@ def parse_lane_distr(lane_distr_file):
 
 
 def read_fcd_vehicle(vehicle):
+    if vehicle['type'] == 'DEFAULT_VEHTYPE':
+        vehicle['type'] = 'car'
     return {
         'x': float(vehicle['x']),
         'y': float(vehicle['y']),
         'z': 0,
         'speed': float(vehicle['speed']),
         'angle': vehicle['angle'],
-        'type': "passenger2a",
+        'type': vehicle['type'],
+        'vClass': vehicle['vClass'] if 'vClass' in vehicle else 'passenger',
         'length': 4.5,
         'width': 1.8,
         'signals': 0,
-        'vClass': 'passenger',
     }
 
 

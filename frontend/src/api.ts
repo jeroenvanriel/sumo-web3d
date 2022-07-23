@@ -52,7 +52,7 @@ export interface Snapshot {
   vehicles: Delta<VehicleInfo>;
   lights: Delta<LightInfo>;
   lane_distributions: number[][];
-  vehicle_counts: {[vClass: string]: number};
+  vehicle_counts: {[vType: string]: number};
   /** time to run one step of the SUMO simulation */
   simulate_secs: number;
   /** time to construct the snapshot of the update */

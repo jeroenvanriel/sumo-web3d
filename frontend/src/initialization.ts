@@ -12,7 +12,7 @@ import {OBJLoader} from 'three/examples/jsm/loaders/OBJLoader';
 import {MTLLoader} from 'three/examples/jsm/loaders/MTLLoader';
 import {GLTFLoader} from 'three/examples/jsm/loaders/GLTFLoader';
 
-import { SUPPORTED_VEHICLE_CLASSES, MODELS } from './constants';
+import { SUPPORTED_VEHICLE_TYPES, MODELS } from './constants';
 import { Color, Mesh, MeshPhongMaterial, Object3D } from 'three';
 
 export interface ModelParams {
@@ -37,7 +37,7 @@ export interface InitResources {
   availableScenarios: ScenarioName[];
   settings: SumoSettings | null;
   network: Network;
-  vehicles: {[vehicleClass: string]: Model[]};
+  vehicles: {[vehicleType: string]: Model[]};
   models: {[name: string]: Model};
   additional: AdditionalResponse | null;
   lanemap: LaneMap | null,
@@ -149,9 +149,9 @@ async function enableVehicleShadows(model: Promise<Model>) {
   return model;
 }
 
-function loadVehicles(): {[vehicleClass: string]: Promise<Model[]>} {
-  // map each vehicle class to an array of all possible models
-  return _.mapValues(SUPPORTED_VEHICLE_CLASSES, (v, k) =>
+function loadVehicles(): {[vehicleType: string]: Promise<Model[]>} {
+  // map each vehicle type to an array of all possible models
+  return _.mapValues(SUPPORTED_VEHICLE_TYPES, (v, k) =>
     Promise.all(
       _.map(v.models, model => enableVehicleShadows(loadObject3D(model)))
     )

@@ -1,11 +1,8 @@
 // Copyright 2018 Sidewalk Labs | http://www.eclipse.org/legal/epl-v20.html
 import * as _ from 'lodash';
-import { Color, Mesh } from 'three';
+import * as three from 'three';
 
-import {ModelParams, SupportedVehicle} from './initialization';
-
-// These are abstract vehicle classes. For a complete list, see:
-// http://sumo.dlr.de/wiki/Definition_of_Vehicles,_Vehicle_Types,_and_Routes
+import { ModelParams, SupportedVehicle } from './initialization';
 
 // Vehicle colors and types from OpenGameArt (OGA), licensed CC0.
 // See http://opengameart.org/content/vehicles-assets-pt1
@@ -31,62 +28,23 @@ function cgtVehicle(color: string): ModelParams {
   return {
     objectUrl: `/vehicles-new/clio-${color}.glb`,
     scale: CGT_SCALE,
-    baseColor: new Color(...CGT_COLORS_RGB[color]),
+    baseColor: new three.Color(...CGT_COLORS_RGB[color]),
     baseColorPart: "body",
   };
 }
 
-export const SUPPORTED_VEHICLE_CLASSES: {[sumoVehicleClass: string]: SupportedVehicle} = {
-  passenger: {
+export const SUPPORTED_VEHICLE_TYPES: {[sumoVehicleType: string]: SupportedVehicle} = {
+  car: {
     label: 'car',
-    // models: _.flatMap(OGA_TYPES, type => _.map(OGA_COLORS, color => ogaVehicle(type, color))),
     models: _.map(CGT_COLORS, color => cgtVehicle(color)),
   },
-  passenger2: {
-    label: 'car',
-    // models: _.flatMap(OGA_TYPES, type => _.map(OGA_COLORS, color => ogaVehicle(type, color))),
-    models: [cgtVehicle('blue')]
-  },
-  bicycle: {
-    label: 'bike',
-    models: [
-      {
-        objectUrl: '/vehicles/bicycle.obj',
-        materialUrl: '/vehicles/bicycle.png',
-      },
-    ],
-  },
-  rail: {
-    label: 'train',
-    models: [
-      {
-        objectUrl: '/vehicles/Streetcar.obj',
-        materialUrl: '/vehicles/Streetcar.png',
-      },
-    ],
-  },
-  pedestrian: {
-    label: 'person',
-    models: [
-      {
-        objectUrl: '/vehicles/pedestrian.obj',
-        materialUrl: '/vehicles/pedestrian.png',
-      },
-      {
-        objectUrl: '/vehicles/pedestrian_male.obj',
-        materialUrl: '/vehicles/pedestrian_male.png',
-      },
-    ],
-  },
-  bus: {
-    label: 'bus',
-    models: [
-      {
-        objectUrl: '/vehicles/bus.obj',
-        materialUrl: '/vehicles/bus.png',
-      },
-    ],
-  },
+  ambulance: {
+    label: 'ambulance',
+    models: [{ 
+      objectUrl: '/ambulance.glb',
+      scale: 0.17,
+    }],
+  }
 };
 
 export const MODELS: {[name: string]: ModelParams} = {

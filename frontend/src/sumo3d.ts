@@ -26,7 +26,7 @@ export const SUMO_ENDPOINT = `http://${hostname}:5000`;
 export interface SumoState {
   time: number;
   payloadSize: number;
-  vehicleCounts: {[vClass: string]: number};
+  vehicleCounts: {[type: string]: number};
   simulateSecs: number;
   snapshotSecs: number;
 }
@@ -78,7 +78,7 @@ export default class Sumo3D {
   private renderer: three.WebGLRenderer;
   private controls: PanAndRotateControls | FollowVehicleControls | OrbitControls;
   public simulationState: SimulationState;
-  private vClassModels: {[vehicleClass: string]: Model[]};
+  private vTypeModels: {[vehicleType: string]: Model[]};
   private trafficLights: TrafficLights;
   private highlightedMeshes: HighlightedMesh[];
   private highlightedRoute: HighlightedMesh[];
@@ -100,7 +100,7 @@ export default class Sumo3D {
 
     this.simulationState = init.simulationState;
     this.transform = getTransforms(init.network);
-    this.vClassModels = init.vehicles;
+    this.vTypeModels = init.vehicles;
     this.vehicles = {};
     this.highlightedRoute = [];
     this.highlightedMeshes = [];
@@ -166,7 +166,7 @@ export default class Sumo3D {
 
     this.animate = this.animate.bind(this);
     this.moveCameraTo = this.moveCameraTo.bind(this);
-    this.moveCameraToRandomVehicleOfClass = this.moveCameraToRandomVehicleOfClass.bind(this);
+    this.moveCameraToRandomVehicleOfType = this.moveCameraToRandomVehicleOfType.bind(this);
 
     const sceneFolder = this.gui.addFolder('Scene');
     const sceneOptions = {
@@ -224,7 +224,7 @@ export default class Sumo3D {
   }
 
   createVehicleObject(vehicleId: string, info: VehicleInfo) {
-    const vehicle = Vehicle.fromInfo(this.vClassModels, vehicleId, info);
+    const vehicle = Vehicle.fromInfo(this.vTypeModels, vehicleId, info);
     if (vehicle) {
       this.vehicles[vehicleId] = vehicle;
       vehicle.update(this.transform);
@@ -348,15 +348,15 @@ export default class Sumo3D {
     }
   }
 
-  moveCameraToRandomVehicleOfClass(vehicleClass: string) {
-    const vehicles = _.filter(this.vehicles, v => v.vehicleInfo.vClass === vehicleClass);
+  moveCameraToRandomVehicleOfType(vehicleType: string) {
+    const vehicles = _.filter(this.vehicles, v => v.vehicleInfo.type === vehicleType);
     const randomVehicle = _.sample<Vehicle>(vehicles);
     if (randomVehicle) {
       const {x, y, z} = randomVehicle.mesh.position;
       // the offsets put the camera slightly behind the vehicle and above the road
       this.camera.position.set(x, y + 2, z + 10);
     } else {
-      console.warn('cannot find a random', vehicleClass);
+      console.warn('cannot find a random', vehicleType);
     }
   }
 

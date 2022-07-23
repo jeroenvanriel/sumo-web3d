@@ -9,7 +9,7 @@ import {LatLng} from '../coords';
 
 import {RootProps} from './root';
 
-import {SUPPORTED_VEHICLE_CLASSES} from '../constants';
+import { SUPPORTED_VEHICLE_TYPES } from '../constants';
 
 const SelectedPoint = (props: {point: LatLng}) => {
   const {lat, lng} = props.point;
@@ -47,15 +47,15 @@ const SelectedVehicle = (props: {id: string; info: VehicleInfo}) => (
   </div>
 );
 
-const VehicleCounter = (props: {vehicleCounts: {[vehicleClass: string]: number}}) => {
+const VehicleCounter = (props: {vehicleCounts: {[vehicleType: string]: number}}) => {
   const {vehicleCounts} = props;
   return (
     <div className="vehicle-counter">
-      {_.map(vehicleCounts, (count, vClass) => {
-        const supportedVehicle = SUPPORTED_VEHICLE_CLASSES[vClass];
-        const label = supportedVehicle ? supportedVehicle.label : vClass;
+      {_.map(vehicleCounts, (count, vType) => {
+        const supportedVehicle = SUPPORTED_VEHICLE_TYPES[vType];
+        const label = supportedVehicle ? supportedVehicle.label : vType;
         return (
-          <div key={vClass}>
+          <div key={vType}>
             {label}(s): {count}
           </div>
         );
@@ -70,7 +70,7 @@ const SelectedObject = (props: {
   edgesHighlighted: boolean;
   toggleRouteObjectHighlighted: (object: string) => any;
 }) => {
-  const {name, vClass, osmId} = props.object;
+  const {name, type, osmId} = props.object;
   if (osmId) {
     const osmUrl = `http://www.openstreetmap.org/${osmId.type}/${osmId.id}`;
     return (
@@ -80,7 +80,7 @@ const SelectedObject = (props: {
         </a>
       </li>
     );
-  } else if (vClass && SUPPORTED_VEHICLE_CLASSES[vClass]) {
+  } else if (type && SUPPORTED_VEHICLE_TYPES[type]) {
     return (
       <li>
         {name}

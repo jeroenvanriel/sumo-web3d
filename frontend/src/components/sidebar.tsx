@@ -11,7 +11,7 @@ import KeyboardHelp from './keyboard-help';
 import {RootProps} from './root';
 import ScenarioListDropDownMenu from './scenario-list-drop-down-menu';
 
-import {SUPPORTED_VEHICLE_CLASSES} from '../constants';
+import { SUPPORTED_VEHICLE_TYPES } from '../constants';
 
 export interface SidebarState {
   sliderLocation: number; // between 0 and 1
@@ -100,12 +100,12 @@ class Sidebar extends React.Component<RootProps, SidebarState> {
           <div className="quick-focus-title">Quick Find</div>
           <QuickSearch {...this.props} />
           <div className="quick-focus-buttons">
-            {_.map(SUPPORTED_VEHICLE_CLASSES, (v, vClass) => (
+            {_.map(SUPPORTED_VEHICLE_TYPES, (v, vType) => (
               <FlatButton
                 label={v.label}
-                key={vClass}
-                onClick={() => this.props.onFocusOnVehicleOfClass(vClass)}
-                disabled={!this.props.stats.vehicleCounts[vClass]}
+                key={vType}
+                onClick={() => this.props.onFocusOnVehicleOfType(vType)}
+                disabled={!this.props.stats.vehicleCounts[vType]}
                 primary
               />
             ))}

@@ -15,7 +15,7 @@ export interface RootProps extends State {
   unfollowObjectPOV: () => any;
   toggleRouteObjectHighlighted: (object: string) => any;
   onChangeDelayMs: (delayMs: number) => any;
-  onFocusOnVehicleOfClass: (vehicleClass: string) => any;
+  onFocusOnVehicleOfType: (vehicleType: string) => any;
   onFocusOnTrafficLight: () => any;
   handleSearch: (input: string) => any;
   deselectSearch: () => any;
