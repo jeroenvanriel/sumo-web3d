@@ -20,8 +20,8 @@ const BRAKE_LIGHT_COLOR = 0xff0000;
 const SIGNAL_LIGHT_COLOR = 0x0000ff;
 
 const SPEED_COLOR = true;
-const SPEED_COLOR_LOW = new Color(1, 0, 0);
-const SPEED_COLOR_HIGH = new Color(0, 1, 0);
+const SPEED_COLOR_LOW = new three.Color(1, 0, 0);
+const SPEED_COLOR_HIGH = new three.Color(0, 1, 0);
 
 export default class Vehicle {
   // TODO (Ananta): the frontend shouldn't need to retain a copy of all vehicle info.
@@ -66,23 +66,23 @@ export default class Vehicle {
       this.setupLights(mesh.userData, mesh);
     }
 
-    if (model.baseColorPart) { // model needs to specify the part (baseColorPart) that changes color
-      // locate that part
-      this.mesh.traverse(obj => {
-        if (obj instanceof three.Mesh && _.has(obj.material, 'color') && obj.material.name == model.baseColorPart) {
-          // each vehicle gets it's own material instance for the part that changes color
-          obj.material = obj.material.clone();
-          // keep a reference to this material for dynamically changing the color
-          this.baseColorMaterial = obj.material;
-        }
-      })
+    if (!model.baseColorPart) { // model needs to specify the part (baseColorPart) that changes color
+      throw new Error('Vehicle models need to specify the baseColorPart for color changing.')
     }
+    // TODO(Jeroen): possibly allow multiple parts
+    this.mesh.traverse(obj => { // locate that part
+      if (obj instanceof three.Mesh && _.has(obj.material, 'color') && obj.name == model.baseColorPart) {
+        // each vehicle gets it's own material instance for the part that changes color
+        obj.material = obj.material.clone();
+        // keep a reference to this material for dynamically changing the color
+        this.baseColorMaterial = obj.material;
+      }
+    })
     if (info.color) { // use color in vehicle info
-      console.log("reading color from vehicle info")
-      this.baseColor = this.baseColorMaterial.color = new Color(...info.color);
-    } else if (model.baseColor) { // ...otherwise see if model provides a base color
+      this.baseColor = this.baseColorMaterial.color = new three.Color(...info.color);
+    } else if (model.baseColor) { // ...or see if model provides a base color
       this.baseColor = this.baseColorMaterial.color = model.baseColor;
-    } else { // ...or just set the color that is already in the model
+    } else { // ...or use color already on the object
       this.baseColor = this.baseColorMaterial.color;
     }
 
@@ -114,12 +114,12 @@ export default class Vehicle {
   }
 
   updateColor() {
-    if (this.vehicleInfo.color) { // use the provied color
-      this.baseColor = this.baseColorMaterial.color = new Color(...this.vehicleInfo.color);
+    if (this.vehicleInfo.color) { // use the provided color
+      this.baseColorMaterial.color = new three.Color(...this.vehicleInfo.color);
     } else if (SPEED_COLOR && !this.customColor) {
       // TODO(Jeroen): parameterize max speed
       // change color according to current speed
-      const col = SPEED_COLOR_LOW.lerp(SPEED_COLOR_HIGH, this.vehicleInfo.speed / 15);
+      const col = new Color().lerpColors(SPEED_COLOR_LOW, SPEED_COLOR_HIGH, this.vehicleInfo.speed / 15);
       this.baseColorMaterial.color = col;
     }
   }
@@ -131,7 +131,7 @@ export default class Vehicle {
 
   resetColor() {
     this.customColor = false;
-    this.changeColor(this.baseColor);
+    this.baseColorMaterial.color = this.baseColor;
     this.updateColor();
   }
 
