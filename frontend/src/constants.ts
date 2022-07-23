@@ -28,6 +28,7 @@ function cgtVehicle(color: string): ModelParams {
   return {
     objectUrl: `/vehicles-new/clio-${color}.glb`,
     scale: CGT_SCALE,
+    offsetY: -3.0,
     baseColor: new three.Color(...CGT_COLORS_RGB[color]),
     baseColorPart: 'Cube002_1',
   };
@@ -43,6 +44,7 @@ export const SUPPORTED_VEHICLE_TYPES: {[sumoVehicleType: string]: SupportedVehic
     models: [{ 
       objectUrl: '/ambulance.glb',
       scale: 0.17,
+      offsetY: 0.5,
       baseColorPart: 'body_1',
     }],
   }

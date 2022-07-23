@@ -20,6 +20,7 @@ export interface ModelParams {
   materialUrl?: string;
   scale?: number;
   position?: { x: number, y: number, z: number };
+  offsetY?: number,
   baseColor?: Color,
   baseColorPart?: string,
 }

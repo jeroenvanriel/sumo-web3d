@@ -8,13 +8,13 @@ import { Model } from './initialization';
 import { Transform } from './coords';
 import { Color } from 'three';
 
-const OFFSET_X = 0.8;
-const OFFSET_Y = 0.644;
-const OFFSET_Z_FRONT = -0.1;
-const OFFSET_Z_BACK = -4.0;
-
 // Turn/brake lights are temporarily disabled while we investigate performance issues around them.
 const SHOW_LIGHTS = false;
+
+const LIGHT_OFFSET_X = 0.8;
+const LIGHT_OFFSET_Y = 0.644;
+const LIGHT_OFFSET_Z_FRONT = -0.1;
+const LIGHT_OFFSET_Z_BACK = -4.0;
 
 const BRAKE_LIGHT_COLOR = 0xff0000;
 const SIGNAL_LIGHT_COLOR = 0x0000ff;
@@ -29,6 +29,8 @@ export default class Vehicle {
   public mesh: three.Group | three.Object3D | three.Mesh;
   public id: string;
   public vehicleInfo: VehicleInfo;
+
+  private offsetY: number = 0.0;
 
   private baseColor: three.Color;
   private baseColorMaterial: { color: three.Color };
@@ -55,6 +57,8 @@ export default class Vehicle {
     this.mesh = mesh;
     this.id = vehicleId;
     this.vehicleInfo = info;
+    if (model.offsetY) 
+      this.offsetY = model.offsetY
 
     mesh.name = vehicleId; // TODO(Jeroen): check if this prop is still necessary
     mesh.userData = {
@@ -102,7 +106,7 @@ export default class Vehicle {
     const obj = this.mesh;
     const [x, y, z] = t.sumoXyzToXyz([v.x, v.y, v.z]);
     const angle = three.MathUtils.degToRad(180 - v.angle);
-    const offset = v.length / 2 - 3.0;
+    const offset = v.length / 2 + this.offsetY;
     obj.position.set(x - offset * Math.sin(angle), y, z - offset * Math.cos(angle));
     obj.rotation.set(0, angle, 0);
     if (v.type === 'SUMO_DEFAULT_TYPE' || v.type === 'passenger') {
@@ -147,30 +151,30 @@ export default class Vehicle {
   setupLights(userData: any, mesh: three.Object3D) {
     userData.leftFrontLight = this.addLight(
       mesh,
-      -OFFSET_X,
-      OFFSET_Y,
-      OFFSET_Z_FRONT,
+      -LIGHT_OFFSET_X,
+      LIGHT_OFFSET_Y,
+      LIGHT_OFFSET_Z_FRONT,
       SIGNAL_LIGHT_COLOR,
     );
     userData.leftBackLight = this.addLight(
       mesh,
-      OFFSET_X,
-      OFFSET_Y,
-      OFFSET_Z_BACK,
+      LIGHT_OFFSET_X,
+      LIGHT_OFFSET_Y,
+      LIGHT_OFFSET_Z_BACK,
       BRAKE_LIGHT_COLOR,
     );
     userData.rightFrontLight = this.addLight(
       mesh,
-      OFFSET_X,
-      OFFSET_Y,
-      OFFSET_Z_FRONT,
+      LIGHT_OFFSET_X,
+      LIGHT_OFFSET_Y,
+      LIGHT_OFFSET_Z_FRONT,
       SIGNAL_LIGHT_COLOR,
     );
     userData.rightBackLight = this.addLight(
       mesh,
-      -OFFSET_X,
-      OFFSET_Y,
-      OFFSET_Z_BACK,
+      -LIGHT_OFFSET_X,
+      LIGHT_OFFSET_Y,
+      LIGHT_OFFSET_Z_BACK,
       BRAKE_LIGHT_COLOR,
     );
   }
