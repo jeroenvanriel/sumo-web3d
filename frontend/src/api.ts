@@ -230,15 +230,3 @@ export interface SumoSettings {
     };
   };
 }
-
-export interface Object3DLoaderParams {
-  objectUrl: string;
-  materialUrl?: string;
-  scale?: number;
-  position?: { x: number, y: number, z: number };
-}
-
-export interface SupportedVehicle {
-  label: string; // colloquial name, for display use only
-  models: Object3DLoaderParams[];
-}

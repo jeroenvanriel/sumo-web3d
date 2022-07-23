@@ -6,10 +6,11 @@
  */
 import * as _ from 'lodash';
 import * as three from 'three';
+import * as dat from 'dat.gui/build/dat.gui.js';
 
 import {Network, TlLogic} from './api';
 import {Transform} from './coords';
-import {InitResources} from './initialization';
+import {InitResources, Model} from './initialization';
 import {TRAFFIC_LIGHTS} from './materials';
 import {parseShape} from './sumo-utils';
 import {setMaterial} from './three-utils';
@@ -26,18 +27,35 @@ enum Directions {
 }
 
 export default class TrafficLights {
+  private gui: typeof dat.gui.GUI;
   private lightObjects: {[lightId: string]: three.Object3D[]} = {};
   private lightCycles: {[programId: string]: {[lightId: string]: TlLogic}} = {};
   private currentPrograms: {[lightId: string]: string} = {};
   private arrows: InitResources['arrows'];
+  private trafficLight: Model;
 
-  constructor(init: InitResources) {
+  private tlsGroup: three.Group;
+  private tlsOffset = {offset: 6, prev: 0};
+  private arrowsGroup: three.Group;
+  private arrowsOffset = {offset: 3.5, prev: 0};
+
+  constructor(init: InitResources, gui: typeof dat.gui.GUI) { 
+    this.gui = gui;
     this.arrows = init.arrows;
+    this.trafficLight = init.models.trafficLight;
+
+    this.updateOffset = this.updateOffset.bind(this)
+    this.loadNetwork = this.loadNetwork.bind(this)
+
+    const folder = this.gui.addFolder('Traffic Lights');
+    folder.add(this.tlsOffset, 'offset', 0, 10).onChange(this.updateOffset);
+    folder.add(this.arrowsOffset, 'offset', 0, 10).onChange(this.updateOffset);
   }
 
   loadNetwork(network: Network, t: Transform): three.Group {
     const {net} = network;
-    const group = new three.Group();
+    this.tlsGroup = new three.Group();
+    this.arrowsGroup = new three.Group();
 
     const tlConnections = _.filter(net.connection, c => _.has(c, 'tl'));
     const lightCounts: {[laneId: string]: number} = {};
@@ -72,13 +90,34 @@ export default class TrafficLights {
 
       light.position.set(x, y + lightCounts[laneId], z);
       light.rotation.set(0, yRotation, 0);
-      group.add(light);
+      this.arrowsGroup.add(light);
       if (!this.lightObjects[lightId]) {
         this.lightObjects[lightId] = [];
       }
       this.lightObjects[lightId][Number(connection.linkIndex)] = light;
+
+      // only add a fixture when the first arrow is added
+      if (lightCounts[laneId] == 1) {
+        const fixture = this.trafficLight.object.clone();
+        fixture.position.set(x, y, z);
+        fixture.rotation.set(0, yRotation, 0);
+        this.tlsGroup.add(fixture);
+      }
     });
+
+    // set initial offset
+    this.updateOffset();
+
+    const group = new three.Group().add(this.tlsGroup).add(this.arrowsGroup);
     return group;
+  }
+
+  private updateOffset() {
+    this.tlsGroup.position.y += this.tlsOffset.offset - this.tlsOffset.prev;
+    this.tlsOffset.prev = this.tlsOffset.offset;
+
+    this.arrowsGroup.position.y += this.arrowsOffset.offset - this.arrowsOffset.prev;
+    this.arrowsOffset.prev = this.arrowsOffset.offset;
   }
 
   /** Add traffic light programs to the simulation. */

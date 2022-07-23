@@ -85,13 +85,14 @@ function indexAllowedClasses(allow?: string): ClassLookup {
 function laneToGeometry(transform: Transform, edge: Edge, lane: Lane): three.BufferGeometry {
   const coords = parseShape(lane.shape);
   const width = lane.width ? Number(lane.width) : DEFAULT_LANE_WIDTH_M;
+  const length = Number(lane.length);
   const uScaleFactor = 1;
   const style = {
     width,
     uScaleFactor,
   };
 
-  return lineString(coords, transform, style);
+  return lineString(coords, transform, style, length);
 }
 
 function laneToMaterial(dynamicLaneMaterials: boolean, type: Type, allowed: ClassLookup, edge: Edge, lane: Lane): three.Material {
@@ -302,15 +303,17 @@ function makePolygon(polygon: Polygon, t: Transform): three.Mesh | null {
 }
 
 function makeMergedPolygons(polygons: Polygon[], t: Transform): three.Mesh {
-  const geometry = new three.BufferGeometry();
+  let geometries : BufferGeometry[] = [];
   for (const polygon of polygons) {
     const obj = makePolygon(polygon, t);
     if (obj) {
-      mergeMeshWithUserData(geometry, obj);
+      geometries.push(obj.geometry);
     }
   }
-  geometry.sortFacesByMaterialIndex();
-  geometry.computeFaceNormals();
+  const geometry = mergeBufferGeometries(geometries);
+  // TODO(jeroen): make this work with BufferGeometry
+  // geometry.sortFacesByMaterialIndex();
+  // geometry.computeFaceNormals();
   const mesh = new three.Mesh(geometry, materials.BUILDING);
   mesh.castShadow = true;
   mesh.receiveShadow = true;
@@ -356,9 +359,10 @@ function makeMergedBusStops(network: Network, busStops: BusStop[], t: Transform)
     mergeMeshWithUserData(geometry, stopObj);
   }
 
-  geometry.sortFacesByMaterialIndex();
-  geometry.computeFaceNormals();
-  const mesh = new three.Mesh(geometry, new three.MeshFaceMaterial([materials.BUS_STOP]));
+  // TODO(jeroen): make this work with BufferGeometry
+  // geometry.sortFacesByMaterialIndex();
+  // geometry.computeFaceNormals();
+  const mesh = new three.Mesh(geometry, [materials.BUS_STOP]);
   mesh.castShadow = true;
   mesh.receiveShadow = true;
   return mesh;
@@ -380,8 +384,9 @@ function makeMergedLakes(lakes: FeatureCollection, t: Transform): three.Mesh {
     mergeMeshWithUserData(geometry, waterMesh);
   }
 
-  geometry.sortFacesByMaterialIndex();
-  geometry.computeFaceNormals();
+  // TODO(jeroen): make this work with BufferGeometry
+  // geometry.sortFacesByMaterialIndex();
+  // geometry.computeFaceNormals();
   const mesh = new three.Mesh(geometry, materials.WATER);
   mesh.receiveShadow = true;
   return mesh;
@@ -414,6 +419,9 @@ function generateTrees(
     dummy.updateMatrix();
     _.forEach(meshes, mesh => mesh.setMatrixAt(i, dummy.matrix))
   }
+
+  // enable shadows
+  _.forEach(meshes, mesh => mesh.castShadow = true);
 
   const mesh = new three.Group();
   mesh.add(...meshes);
@@ -468,6 +476,9 @@ function generateBuildings(
     })
   }
 
+  // enable shadows
+  _.forEach(meshes, ([mesh, meshTransform]) => { mesh.castShadow = true });
+
   const mesh = new three.Group();
   mesh.add(...meshes.map(([mesh, _]) => mesh));
   return mesh;
@@ -499,15 +510,15 @@ export function makeStaticObjects(
 
   // Trees
   if (models.tree) {
-    const treesMesh = generateTrees(models.tree, 30, t, group);
+    const treesMesh = generateTrees(models.tree.object, 30, t, group);
     group.add(treesMesh);
   }
 
   // Buildings
-  if (models.building) {
-    const buildingsMesh = generateBuildings(models.building, 10, t, group);
-    group.add(buildingsMesh);
-  }
+  // if (models.building) {
+  //   const buildingsMesh = generateBuildings(models.building, 10, t, group);
+  //   group.add(buildingsMesh);
+  // }
 
   // Land mesh
   let [left, top, right, bottom] = network.net.location.convBoundary.split(',').map(Number);
@@ -524,26 +535,26 @@ export function makeStaticObjects(
   bgMesh.receiveShadow = true;
   group.add(bgMesh);
 
-  // Optional environment model
-  if (models.environment) {
-    models.environment.name = 'Environment';
-    group.add(models.environment);
-  }
+  // // Optional environment model
+  // if (models.environment) {
+  //   models.environment.name = 'Environment';
+  //   group.add(models.environment);
+  // }
 
   if (lakes) {
-    group.add(makeMergedLakes(lakes, t));
+    // group.add(makeMergedLakes(lakes, t));
   }
 
   if (additionalResponse) {
     const {busStop} = additionalResponse;
     if (busStop) {
-      group.add(makeMergedBusStops(network, busStop, t));
+      // group.add(makeMergedBusStops(network, busStop, t));
     }
 
-    const {poly} = additionalResponse;
-    if (poly) {
-      group.add(makeMergedPolygons(poly, t));
-    }
+    // const {poly} = additionalResponse;
+    // if (poly) {
+    //   group.add(makeMergedPolygons(poly, t));
+    // }
   }
 
   return [group, laneMaterials, osmIdToMesh];

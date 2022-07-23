@@ -342,13 +342,18 @@ def parse_lane_distr(lane_distr_file):
 
     with open(lane_distr_file) as f:
         lines = f.readlines()
-        data = []
+        line = lines.pop(0)
+        data = [ line.replace('[[', '') ]
         for line in lines:
-            if line != '-\n':
-                data.append(ast.literal_eval(line))
+            # TODO: make this parser not depend on the particular formatting
+            if re.match(f'\]\]', line):
+                break
+            elif not re.match(r'\], \[', line):
+                data.append(ast.literal_eval(line.replace(', ', '', 1)))
             else:
                 yield data
-                data = []
+                # parse first line of timestep
+                data = [ line.replace('], [', '') ]
 
 
 def read_fcd_vehicle(vehicle):
@@ -734,14 +739,14 @@ def main(args):
     http_server = loop.create_server(
         app.make_handler(),
         '0.0.0.0',
-        5000,
+        8000,
     )
 
     loop.run_until_complete(http_server)
     loop.run_until_complete(ws_server)
 
     print("""Listening on:
-    127.0.0.1:5000 (HTTP)
+    127.0.0.1:8000 (HTTP)
     127.0.0.1:5678 (WebSockets)
     """)
 

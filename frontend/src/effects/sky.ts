@@ -11,14 +11,14 @@ const SHADOW_MAP_SIZES = {
 const SHADOW_MAP_SIZE_DEFAULT = 'medium';
 
 // Constants tweaked for Toronto, may need changes for other places.
-const TARGET_OFFSET_X = -1000;
-const TARGET_OFFSET_Z = -2000;
-const POS_OFFSET_X = 500;
-const POS_Y = 2500;
-const POS_OFFSET_Z = -5000;
-const LIGHT_WIDTH = 3000;
+const TARGET_OFFSET_X = -100;
+const TARGET_OFFSET_Z = -100;
+const POS_OFFSET_X = 0;
+const POS_Y = 100;
+const POS_OFFSET_Z = 0;
+const LIGHT_WIDTH = 300;
 
-const AMBIENT_LIGHT_COLOR = 0x444444;
+const AMBIENT_LIGHT_COLOR = 0xffffff;
 const DIRECTIONAL_LIGHT_COLOR = 0xffffff;
 
 const CUBE_DIR = '/sky/';
@@ -31,7 +31,7 @@ const CUBE_FILES = [
   'TropicalSunnyDayBack2048.png',
 ];
 
-export default function addSky(
+export function addSkybox(
   gui: typeof dat.gui.GUI,
   scene: three.Scene,
   centerX: number,
@@ -41,8 +41,16 @@ export default function addSky(
   // SkyboxSet by Heiko Irrgang is licensed under a Creative Commons Attribution-ShareAlike 3.0
   // Unported License. Based on a work at 93i.de.
   scene.background = new three.CubeTextureLoader().setPath(CUBE_DIR).load(CUBE_FILES);
+  return scene.background;
+}
 
-  const ambient = new three.AmbientLight(AMBIENT_LIGHT_COLOR);
+export function addLights(
+  gui: typeof dat.gui.GUI,
+  scene: three.Scene,
+  centerX: number,
+  centerZ: number,
+) {
+  const ambient = new three.AmbientLight(AMBIENT_LIGHT_COLOR, 0.3);
   scene.add(ambient);
 
   const dirLight = new three.DirectionalLight(DIRECTIONAL_LIGHT_COLOR, 1);
@@ -50,11 +58,21 @@ export default function addSky(
   scene.add(dirLight);
   scene.add(targetObject);
 
+  // add a visual aid
+  const helper = new three.DirectionalLightHelper( dirLight, 5 );
+  // scene.add( helper );
+
+  const shadowhelper = new three.CameraHelper( dirLight.shadow.camera );
+  // scene.add( shadowhelper );
+
   targetObject.position.set(centerX + TARGET_OFFSET_X, 0, centerZ + TARGET_OFFSET_Z);
+  console.log(targetObject.position)
 
   dirLight.position.set(centerX + POS_OFFSET_X, POS_Y, centerZ + POS_OFFSET_Z);
   dirLight.target = targetObject;
   dirLight.castShadow = true;
+
+  console.log(dirLight.position)
 
   const shadow = dirLight.shadow;
   shadow.mapSize.width = shadow.mapSize.height = SHADOW_MAP_SIZES[SHADOW_MAP_SIZE_DEFAULT];
@@ -64,17 +82,17 @@ export default function addSky(
   shadow.camera.far = 10000;
 
   // Add GUI
-  const lightsOptions = {
-    shadowsEnabled: true,
-    shadowSize: SHADOW_MAP_SIZE_DEFAULT,
-  };
-  const lightsFolder = gui.addFolder('Lights');
-  lightsFolder.add(lightsOptions, 'shadowsEnabled').onChange((v: boolean) => {
-    dirLight.castShadow = v;
-  });
-  lightsFolder
-    .add(lightsOptions, 'shadowSize', Object.keys(SHADOW_MAP_SIZES))
-    .onChange((v: keyof typeof SHADOW_MAP_SIZES) => {
-      shadow.mapSize.width = shadow.mapSize.height = SHADOW_MAP_SIZES[v];
-    });
+  // const lightsOptions = {
+  //   shadowsEnabled: true,
+  //   shadowSize: SHADOW_MAP_SIZE_DEFAULT,
+  // };
+  // const lightsFolder = gui.addFolder('Lights');
+  // lightsFolder.add(lightsOptions, 'shadowsEnabled').onChange((v: boolean) => {
+  //   dirLight.castShadow = v;
+  // });
+  // lightsFolder
+  //   .add(lightsOptions, 'shadowSize', Object.keys(SHADOW_MAP_SIZES))
+  //   .onChange((v: keyof typeof SHADOW_MAP_SIZES) => {
+  //     shadow.mapSize.width = shadow.mapSize.height = SHADOW_MAP_SIZES[v];
+  //   });
 }
