@@ -537,7 +537,7 @@ export default class Sumo3D {
       .map(intersect => this.checkParentsAndFaceForUserData(intersect))
       .filter(userData => !!userData);
 
-    if (groundObj) {
+    if (groundObj && event.ctrlKey) {
       const {x, z} = groundObj.point;
       const sumoPoint = this.transform.xzToSumoXy([x, z]);
       const latLng = this.transform.toLatLng([x, z]);
