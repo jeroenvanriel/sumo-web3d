@@ -7,7 +7,7 @@ module.exports = {
     index: __dirname + '/frontend/src/index.tsx',
   },
   output: {
-    path: __dirname + '/sumo_web3d/static',
+    path: __dirname + '/backend/static',
     filename: '[name].bundle.js',
   },
   devtool: 'inline-source-map',
