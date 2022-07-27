@@ -10,7 +10,7 @@ setup(
     url='https://github.com/sidewalklabs/sumo-web3d/',
     entry_points={
         'console_scripts': [
-            'sumo-web3d = sumo_web3d.server.server:run',
+            'sumo-web3d = backend.server.server:run',
         ],
     },
     # include_package_data=True,
@@ -20,8 +20,8 @@ setup(
     #     'scenarios.json': 'sumo_web3d/scenarios.json'
     # },
     packages=[
-        'sumo_web3d',
-        'sumo_web3d.server',
+        'backend',
+        'backend.server',
     ],
     install_requires=[
         'aiohttp>=2.2',
