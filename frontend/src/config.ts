@@ -15,7 +15,10 @@ export default class Config {
             colorSpeedMax: { value: 15 },
             colorSpeedLow: { color: [255, 0, 0] },
             colorSpeedHigh: { color: [0, 255, 0] },
-        }
+        },
+        groundPlane: {
+            visible: { value: true },
+        },
     }
 
     public controllers : { [category: string] :

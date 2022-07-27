@@ -166,21 +166,17 @@ export default class Sumo3D {
     if (init.additional && init.additional.tlLogic) {
       this.trafficLights.addLogic(forceArray(init.additional.tlLogic));
     }
+
     this.groundPlane = this.scene.getObjectByName('Land') as three.Object3D<Event>;
+    config.listen((v: boolean) => {
+      this.groundPlane.visible = v;
+    }, 'groundPlane', 'visible');
 
     // this.groundPlane.layers.toggle( BLOOM_SCENE );
 
     this.animate = this.animate.bind(this);
     this.moveCameraTo = this.moveCameraTo.bind(this);
     this.moveCameraToRandomVehicleOfType = this.moveCameraToRandomVehicleOfType.bind(this);
-
-    const sceneFolder = this.gui.addFolder('Scene');
-    const sceneOptions = {
-      showGroundPlane: true,
-    };
-    sceneFolder.add(sceneOptions, 'showGroundPlane').onChange((v: boolean) => {
-      this.groundPlane.visible = v;
-    });
 
     parentElement.appendChild(this.renderer.domElement);
 
