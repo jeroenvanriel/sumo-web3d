@@ -1,5 +1,4 @@
 // Copyright 2018 Sidewalk Labs | http://www.eclipse.org/legal/epl-v20.html
-import * as dat from 'dat.gui/build/dat.gui.js';
 import * as _ from 'lodash';
 import * as Stats from 'stats.js';
 import * as three from 'three';
@@ -84,7 +83,6 @@ export default class Sumo3D {
   private highlightedMeshes: HighlightedMesh[];
   private highlightedRoute: HighlightedMesh[];
   private highlightedVehicles: Vehicle[];
-  private gui: typeof dat.gui.GUI;
   private postprocessing: Postprocessing;
   private stats: Stats;
   private simTimePanel: Stats.Panel;
@@ -132,8 +130,6 @@ export default class Sumo3D {
       maxInitY,
     );
     this.camera.position.set(centerX, initY, centerZ);
-
-    this.gui = new dat.gui.GUI();
 
     addSkybox(this.scene, centerX, centerZ);
     addLights(this.scene, centerX, centerZ);
@@ -193,7 +189,6 @@ export default class Sumo3D {
       this.camera,
       this.scene,
       this.renderer,
-      this.gui,
       width,
       height,
       centerX,

@@ -1,6 +1,6 @@
 // Copyright 2018 Sidewalk Labs | http://www.eclipse.org/legal/epl-v20.html
-import * as dat from 'dat.gui/build/dat.gui.js';
 import * as three from 'three';
+import Config from '../config';
 
 // import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass';
 import { SMAAPass } from 'three/examples/jsm/postprocessing/SMAAPass';
@@ -31,7 +31,6 @@ export default class Effects {
   private camera: three.Camera;
   private scene: three.Scene;
   private renderer: three.WebGLRenderer;
-  private gui: typeof dat.gui.GUI;
 
   private bloomLayer = new three.Layers();
   private materials: { [id: string]: three.Material } = {};
@@ -63,7 +62,6 @@ export default class Effects {
     camera: three.Camera,
     scene: three.Scene,
     renderer: three.WebGLRenderer,
-    gui: typeof dat.gui.GUI,
     width: number,
     height: number,
     centerX: number,
@@ -72,7 +70,6 @@ export default class Effects {
     this.camera = camera;
     this.scene = scene;
     this.renderer = renderer;
-    this.gui = gui;
 
     this.bloomLayer.set( BLOOM_SCENE );
 
@@ -99,29 +96,6 @@ export default class Effects {
   }
 
   private initPostprocessing(width: number, height: number) {
-    const effectsFolder = this.gui.addFolder('Effects');
-    const ssaoFolder = this.gui.addFolder('SSAO');
-    const bloomFolder = this.gui.addFolder('Bloom');
-
-    // Render pass
-    const renderPass = new RenderPass(this.scene, this.camera);
-
-    // Screen Space Ambient Occlusion approximates true ambient occlusion, which is the fact
-    // that ambient light does not travel to interiors.
-    this.ssaoPass = new SSAOPass( this.scene, this.camera, width, height );
-
-    ssaoFolder.add( this.ssaoPass, 'kernelSize' ).min( 0 ).max( 32 );
-    ssaoFolder.add( this.ssaoPass, 'kernelRadius' ).min( 0 ).max( 32 );
-    ssaoFolder.add( this.ssaoPass, 'minDistance' ).min( 0.001 ).max( 0.02 );
-    ssaoFolder.add( this.ssaoPass, 'maxDistance' ).min( 0.01 ).max( 1.3 );
-
-    // Subpixel Morphological Antialiasing is an efficient technique to provide antialiasing.
-    this.smaaPass = new SMAAPass(width, height);
-
-    // this.composer = new EffectComposer( this.renderer );
-    // this.composer.addPass(renderPass);
-    // this.composer.addPass(this.smaaPass);
-
     this.composer = new EffectComposer(this.renderer);
     this.composer.addPass(new RenderPass(this.scene, this.camera));
 
@@ -151,7 +125,6 @@ export default class Effects {
       new SMAAEffect()
 		);
     this.composer.addPass(effectPass);
-
 
     // // Bloom 
     // const bloomPass = new UnrealBloomPass(new three.Vector2( window.innerWidth, window.innerHeight ), 1.5, 0.4, 0.85);
@@ -203,25 +176,6 @@ export default class Effects {
 		// 	this.composer = new EffectComposer( this.renderer );
 		// 	this.composer.addPass( renderPass );
 		// 	this.composer.addPass( finalPass );
-
-    this.effectsEnabled = {
-      ssao: true,
-      smaa: true,
-      fog: true,
-    };
-    effectsFolder.add(this.effectsEnabled, 'smaa').onChange((v: boolean) => {
-      this.smaaPass.enabled = v;
-    });
-    effectsFolder.add(this.effectsEnabled, 'ssao').onChange((v: boolean) => {
-      this.ssaoPass.enabled = v;
-    });
-    effectsFolder.add(this.effectsEnabled, 'fog').onChange((v: boolean) => {
-      if (v) {
-        this.scene.fog = this.fog;
-      } else {
-        this.scene.fog = null as any;
-      }
-    });
   }
 
   // renderBloom( mask: boolean ) {
