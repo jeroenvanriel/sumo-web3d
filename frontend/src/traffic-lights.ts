@@ -6,7 +6,6 @@
  */
 import * as _ from 'lodash';
 import * as three from 'three';
-import * as dat from 'dat.gui/build/dat.gui.js';
 
 import {Network, TlLogic} from './api';
 import {Transform} from './coords';
@@ -15,6 +14,7 @@ import {TRAFFIC_LIGHTS} from './materials';
 import {parseShape} from './sumo-utils';
 import {setMaterial} from './three-utils';
 import {forceArray} from './utils';
+import Config from './config';
 
 enum Directions {
   LEFT = 'l',
@@ -27,7 +27,7 @@ enum Directions {
 }
 
 export default class TrafficLights {
-  private gui: typeof dat.gui.GUI;
+  private config: Config;
   private lightObjects: {[lightId: string]: three.Object3D[]} = {};
   private lightCycles: {[programId: string]: {[lightId: string]: TlLogic}} = {};
   private currentPrograms: {[lightId: string]: string} = {};
@@ -35,21 +35,20 @@ export default class TrafficLights {
   private trafficLight: Model;
 
   private tlsGroup: three.Group;
-  private tlsOffset = {offset: 6, prev: 0};
+  private tlsOffsetPrev = 0;
   private arrowsGroup: three.Group;
-  private arrowsOffset = {offset: 3.5, prev: 0};
+  private arrowsOffsetPrev = 0;
 
-  constructor(init: InitResources, gui: typeof dat.gui.GUI) { 
-    this.gui = gui;
+  constructor(init: InitResources, config: Config) { 
+    this.config = config;
     this.arrows = init.arrows;
     this.trafficLight = init.models.trafficLight;
 
     this.updateOffset = this.updateOffset.bind(this)
     this.loadNetwork = this.loadNetwork.bind(this)
 
-    const folder = this.gui.addFolder('Traffic Lights');
-    folder.add(this.tlsOffset, 'offset', 0, 10).onChange(this.updateOffset);
-    folder.add(this.arrowsOffset, 'offset', 0, 10).onChange(this.updateOffset);
+    config.controllers['trafficLight']['tlsOffset'].onChange(this.updateOffset);
+    config.controllers['trafficLight']['arrowsOffset'].onChange(this.updateOffset);
   }
 
   loadNetwork(network: Network, t: Transform): three.Group {
@@ -113,11 +112,14 @@ export default class TrafficLights {
   }
 
   private updateOffset() {
-    this.tlsGroup.position.y += this.tlsOffset.offset - this.tlsOffset.prev;
-    this.tlsOffset.prev = this.tlsOffset.offset;
+    const tlsOffset = this.config.get('trafficLight', 'tlsOffset');
+    const arrowsOffset = this.config.get('trafficLight', 'arrowsOffset');
 
-    this.arrowsGroup.position.y += this.arrowsOffset.offset - this.arrowsOffset.prev;
-    this.arrowsOffset.prev = this.arrowsOffset.offset;
+    this.tlsGroup.position.y += tlsOffset- this.tlsOffsetPrev;
+    this.tlsOffsetPrev = tlsOffset;
+
+    this.arrowsGroup.position.y += arrowsOffset - this.arrowsOffsetPrev;
+    this.arrowsOffsetPrev = arrowsOffset;
   }
 
   /** Add traffic light programs to the simulation. */

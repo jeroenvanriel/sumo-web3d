@@ -7,6 +7,7 @@ import { Signals, VehicleInfo } from './api';
 import { Model } from './initialization';
 import { Transform } from './coords';
 import { Color } from 'three';
+import Config from './config';
 
 // Turn/brake lights are temporarily disabled while we investigate performance issues around them.
 const SHOW_LIGHTS = false;
@@ -19,10 +20,6 @@ const LIGHT_OFFSET_Z_BACK = -4.0;
 const BRAKE_LIGHT_COLOR = 0xff0000;
 const SIGNAL_LIGHT_COLOR = 0x0000ff;
 
-const SPEED_COLOR = true;
-const SPEED_COLOR_LOW = new three.Color(1, 0, 0);
-const SPEED_COLOR_HIGH = new three.Color(0, 1, 0);
-
 export default class Vehicle {
   // TODO (Ananta): the frontend shouldn't need to retain a copy of all vehicle info.
   // Make it as lightweight as possible
@@ -30,12 +27,16 @@ export default class Vehicle {
   public id: string;
   public vehicleInfo: VehicleInfo;
 
+  private static config : Config;
+
   private offsetY: number = 0.0;
 
   private baseColor: three.Color;
   private baseColorMaterial: { color: three.Color };
 
   private customColor: boolean = false;
+
+  static setConfig(config: Config) { this.config = config; }
 
   static fromInfo(
     vTypeObjects: {[vType: string]: Model[]},
@@ -118,13 +119,15 @@ export default class Vehicle {
   }
 
   updateColor() {
-    if (this.vehicleInfo.color) { // use the provided color
-      this.baseColorMaterial.color = new three.Color(...this.vehicleInfo.color);
-    } else if (SPEED_COLOR && !this.customColor) {
-      // TODO(Jeroen): parameterize max speed
+    if (Vehicle.config.get('vehicle', 'colorSpeed') && !this.customColor) {
+      const colorLow = new three.Color(...Vehicle.config.get('vehicle', 'colorSpeedLow'));
+      const colorHigh = new three.Color(...Vehicle.config.get('vehicle', 'colorSpeedHigh'));
+      const max = Vehicle.config.get('vehicle', 'colorSpeedMax');
       // change color according to current speed
-      const col = new Color().lerpColors(SPEED_COLOR_LOW, SPEED_COLOR_HIGH, this.vehicleInfo.speed / 15);
+      const col = new Color().lerpColors(colorLow, colorHigh, this.vehicleInfo.speed / max);
       this.baseColorMaterial.color = col;
+    } else if (this.vehicleInfo.color && !this.customColor) { // use the provided color
+      this.baseColorMaterial.color = new three.Color(...this.vehicleInfo.color);
     }
   }
 

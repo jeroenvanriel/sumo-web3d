@@ -1,5 +1,4 @@
 // Copyright 2018 Sidewalk Labs | http://www.eclipse.org/legal/epl-v20.html
-import * as dat from 'dat.gui/build/dat.gui.js';
 import * as three from 'three';
 
 // Must be powers of 2.
@@ -32,7 +31,6 @@ const CUBE_FILES = [
 ];
 
 export function addSkybox(
-  gui: typeof dat.gui.GUI,
   scene: three.Scene,
   centerX: number,
   centerZ: number,
@@ -45,7 +43,6 @@ export function addSkybox(
 }
 
 export function addLights(
-  gui: typeof dat.gui.GUI,
   scene: three.Scene,
   centerX: number,
   centerZ: number,
@@ -58,21 +55,11 @@ export function addLights(
   scene.add(dirLight);
   scene.add(targetObject);
 
-  // add a visual aid
-  const helper = new three.DirectionalLightHelper( dirLight, 5 );
-  // scene.add( helper );
-
-  const shadowhelper = new three.CameraHelper( dirLight.shadow.camera );
-  // scene.add( shadowhelper );
-
   targetObject.position.set(centerX + TARGET_OFFSET_X, 0, centerZ + TARGET_OFFSET_Z);
-  console.log(targetObject.position)
 
   dirLight.position.set(centerX + POS_OFFSET_X, POS_Y, centerZ + POS_OFFSET_Z);
   dirLight.target = targetObject;
   dirLight.castShadow = true;
-
-  console.log(dirLight.position)
 
   const shadow = dirLight.shadow;
   shadow.mapSize.width = shadow.mapSize.height = SHADOW_MAP_SIZES[SHADOW_MAP_SIZE_DEFAULT];

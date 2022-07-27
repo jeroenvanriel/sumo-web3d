@@ -19,6 +19,7 @@ import {pointCameraAtScene} from './scene-finder';
 import TrafficLights from './traffic-lights';
 import {forceArray} from './utils';
 import Vehicle from './vehicle';
+import Config from './config';
 
 const {hostname} = window.location;
 export const SUMO_ENDPOINT = `http://${hostname}:5000`;
@@ -134,10 +135,15 @@ export default class Sumo3D {
 
     this.gui = new dat.gui.GUI();
 
-    addSkybox(this.gui, this.scene, centerX, centerZ);
-    addLights(this.gui, this.scene, centerX, centerZ);
+    addSkybox(this.scene, centerX, centerZ);
+    addLights(this.scene, centerX, centerZ);
 
-    this.trafficLights = new TrafficLights(init, this.gui);
+    const config = new Config();
+    this.updateVehicleColors = this.updateVehicleColors.bind(this);
+    config.listen(this.updateVehicleColors, 'vehicle')
+    this.trafficLights = new TrafficLights(init, config);
+
+    Vehicle.setConfig(config);
 
     this.lanemap = init.lanemap;
 
@@ -213,6 +219,12 @@ export default class Sumo3D {
 
     const endMs = window.performance.now();
     console.log('Initialized three.js scene in ', endMs - startMs, ' ms.');
+  }
+
+  updateVehicleColors() {
+    _.forEach(this.vehicles, (vehicle, key) => {
+      vehicle.updateColor();
+    });
   }
 
   purgeVehicles() {
