@@ -7,8 +7,7 @@ export default class Config {
     // TODO: load/save this to/from file
     private config : Record<string, Record<string, any>>  = {
         trafficLight: {
-            tlsOffset: { value: 7, min: 0, max: 10 },
-            arrowsOffset: { value: 7, min: 0, max: 10 },
+            offset: { value: 7, min: 0, max: 20 },
         },
         vehicle: {
             colorSpeed: { value: true },

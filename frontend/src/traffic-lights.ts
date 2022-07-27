@@ -37,7 +37,6 @@ export default class TrafficLights {
   private tlsGroup: three.Group;
   private tlsOffsetPrev = 0;
   private arrowsGroup: three.Group;
-  private arrowsOffsetPrev = 0;
 
   constructor(init: InitResources, config: Config) { 
     this.config = config;
@@ -47,8 +46,7 @@ export default class TrafficLights {
     this.updateOffset = this.updateOffset.bind(this)
     this.loadNetwork = this.loadNetwork.bind(this)
 
-    config.controllers['trafficLight']['tlsOffset'].onChange(this.updateOffset);
-    config.controllers['trafficLight']['arrowsOffset'].onChange(this.updateOffset);
+    config.controllers['trafficLight']['offset'].onChange(this.updateOffset);
   }
 
   loadNetwork(network: Network, t: Transform): three.Group {
@@ -87,7 +85,7 @@ export default class TrafficLights {
       // use the lane's last 2 points to determine the angle of the light
       const yRotation = Math.atan2(z - pz, px - x);
 
-      light.position.set(x, y + lightCounts[laneId], z);
+      light.position.set(x, -2.1 + y + lightCounts[laneId] * 0.85, z);
       light.rotation.set(0, yRotation, 0);
       this.arrowsGroup.add(light);
       if (!this.lightObjects[lightId]) {
@@ -112,14 +110,10 @@ export default class TrafficLights {
   }
 
   private updateOffset() {
-    const tlsOffset = this.config.get('trafficLight', 'tlsOffset');
-    const arrowsOffset = this.config.get('trafficLight', 'arrowsOffset');
-
-    this.tlsGroup.position.y += tlsOffset- this.tlsOffsetPrev;
+    const tlsOffset = this.config.get('trafficLight', 'offset');
+    this.tlsGroup.position.y += tlsOffset - this.tlsOffsetPrev;
+    this.arrowsGroup.position.y += tlsOffset - this.tlsOffsetPrev;
     this.tlsOffsetPrev = tlsOffset;
-
-    this.arrowsGroup.position.y += arrowsOffset - this.arrowsOffsetPrev;
-    this.arrowsOffsetPrev = arrowsOffset;
   }
 
   /** Add traffic light programs to the simulation. */
