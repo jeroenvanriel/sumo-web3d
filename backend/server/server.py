@@ -36,18 +36,6 @@ from .xml_utils import get_only_key, parse_xml_file
 
 tc = traci.constants
 
-parser = argparse.ArgumentParser(description='Run the microsim python server.')
-parser.add_argument(
-    '-c', '--configuration-file', dest='configuration_file', default='',
-    help='Run SUMO3D with a specific configuration. The default is to run ' +
-         'with a built-in list of scenarios, e.g. for demoing.')
-parser.add_argument(
-    '--sumo-args', dest='sumo_args', default='',
-    help='Additional arguments to pass to the sumo (or sumo-gui) process. ' +
-         'For example, "--step-length 0.01" or "--scale 10".')
-parser.add_argument(
-    '--gui', action='store_true', default=False,
-    help='Run sumo-gui rather than sumo. This is useful for debugging.')
 
 NO_CACHE_HEADER = {'cache-control': 'no-cache'}
 
@@ -755,6 +743,18 @@ def main(args):
 
 
 def run():
+    parser = argparse.ArgumentParser(description='Run the microsim python server.')
+    parser.add_argument(
+        '-c', '--configuration-file', dest='configuration_file', default='',
+        help='Run SUMO3D with a specific configuration. The default is to run ' +
+            'with a built-in list of scenarios, e.g. for demoing.')
+    parser.add_argument(
+        '--sumo-args', dest='sumo_args', default='',
+        help='Additional arguments to pass to the sumo (or sumo-gui) process. ' +
+            'For example, "--step-length 0.01" or "--scale 10".')
+    parser.add_argument(
+        '--gui', action='store_true', default=False,
+        help='Run sumo-gui rather than sumo. This is useful for debugging.')
     args = parser.parse_args()
     main(args)
 
