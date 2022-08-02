@@ -7,7 +7,6 @@ import functools
 import json
 import os, sys
 import re
-import random
 import shlex
 import time
 import xml.etree.ElementTree as ET
