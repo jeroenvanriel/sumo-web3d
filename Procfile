@@ -1,1 +1,1 @@
-web: python sumo_web3d/sumo_web3d.py
+web: python backend/sumo_web3d.py

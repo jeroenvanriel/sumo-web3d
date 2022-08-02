@@ -419,7 +419,7 @@ def read_next_step(timestep, vehicles):
     return snapshot
 
 
-async def run_simulation(websocket):
+async def run_simulation(ws):
     global current_scenario
 
     # floating car data (fcd) file recorded by SUMO
@@ -443,7 +443,7 @@ async def run_simulation(websocket):
                 snapshot['lane_distributions'] = lane_distributions
 
             snapshot['type'] = 'snapshot'
-            await websocket.send(json.dumps(snapshot))
+            await ws.send_str(json.dumps(snapshot))
             await asyncio.sleep(delay_length_ms / 1000)
         else:
             await asyncio.sleep(0)
@@ -460,16 +460,19 @@ def cleanup_sumo_simulation(simulation_task, live):
             traci.close()
 
 
-async def websocket_simulation_control(sumo_start_fn, websocket, path):
+async def websocket_simulation_control(sumo_start_fn, request):
     # We use globals to communicate with the simulation coroutine for simplicity
     global current_scenario, delay_length_ms, simulation_status
 
     task = None
     live = current_scenario.is_live()
-    while True:
+
+    ws = web.WebSocketResponse()
+    await ws.prepare(request)
+
+    async for msg in ws:
         try:
-            raw_msg = await websocket.recv()
-            msg = json.loads(raw_msg)
+            msg = json.loads(msg.data)
             if msg['type'] == 'action':
                 if msg['action'] == 'start':
                     if live:
@@ -477,7 +480,7 @@ async def websocket_simulation_control(sumo_start_fn, websocket, path):
                         print('started sumo')
                     simulation_status = STATUS_RUNNING
                     loop = asyncio.get_event_loop()
-                    task = loop.create_task(run_simulation(websocket))
+                    task = loop.create_task(run_simulation(ws))
                 elif msg['action'] == 'pause':
                     simulation_status = STATUS_PAUSED
                 elif msg['action'] == 'resume':
@@ -489,13 +492,15 @@ async def websocket_simulation_control(sumo_start_fn, websocket, path):
                     delay_length_ms = msg['delayLengthMs']
                 else:
                     raise Exception('unrecognized action websocket message')
-                await websocket.send(json.dumps(get_state_websocket_message()))
+                await ws.send_str(json.dumps(get_state_websocket_message()))
             else:
                 raise Exception('unrecognized websocket message')
         # we need to handle implicit cancelling, ie the client closing their browser
         except websockets.exceptions.ConnectionClosed:
             cleanup_sumo_simulation(task, live)
             break
+
+    return ws
 
 
 # TraCI business logic
@@ -714,9 +719,27 @@ def setup_http_server(scenario_file, scenarios):
     app.router.add_get('/vehicle_route', vehicle_route_http_response)
     app.router.add_get('/', lambda req: web.HTTPFound(
         '/scenarios/%s/' % default_scenario_name, headers=NO_CACHE_HEADER))
-    app.router.add_static('/', path=os.path.join(DIR, 'static'))
 
     return app
+
+import aiohttp
+
+async def websocket_handler(request):
+
+    ws = web.WebSocketResponse()
+    await ws.prepare(request)
+
+    async for msg in ws:
+        if msg.type == aiohttp.WSMsgType.TEXT:
+            if msg.data == 'close':
+                await ws.close()
+            else:
+                await ws.send_str(msg.data + '/answer')
+        elif msg.type == aiohttp.WSMsgType.ERROR:
+            print('ws connection closed with exception %s' %
+                  ws.exception())
+
+    print('websocket connection closed')
 
 
 def main(args):
@@ -739,35 +762,36 @@ def main(args):
         scenarios = load_scenarios_file({}, SCENARIOS_PATH)
 
     sumo_start_fn = functools.partial(start_sumo_executable, args.gui, args.sumo_args)
-    def setup_websockets_server():
-        return functools.partial(
+
+    ws_handler = functools.partial(
             websocket_simulation_control,
             lambda: sumo_start_fn(getattr(current_scenario, 'config_file'))
         )
+    # ws_server = websockets.serve(ws_handler, '0.0.0.0', 5678)
 
-    loop = asyncio.get_event_loop()
-
-    # websockets
-    ws_handler = setup_websockets_server()
-    ws_server = websockets.serve(ws_handler, '0.0.0.0', 5678)
-
-    # http
     app = setup_http_server(SCENARIOS_PATH, scenarios)
-    http_server = loop.create_server(
-        app.make_handler(),
-        '0.0.0.0',
-        8000,
-    )
+    app.router.add_get('/ws', ws_handler)
+    # app.router.add_get('/ws', websocket_handler)
 
-    loop.run_until_complete(http_server)
-    loop.run_until_complete(ws_server)
+    app.router.add_static('/', path=os.path.join(DIR, 'static'))
+
+    web.run_app(app)
+
+    # loop = asyncio.get_event_loop()
+    # http_server = loop.create_server(
+    #     app.make_handler(),
+    #     '0.0.0.0',
+    #     8000,
+    # )
+
+    # loop.run_until_complete(http_server)
+    # # loop.run_until_complete(ws_server)
 
     print("""Listening on:
     127.0.0.1:8000 (HTTP)
-    127.0.0.1:5678 (WebSockets)
     """)
 
-    loop.run_forever()
+    # loop.run_forever()
 
 
 def run():
