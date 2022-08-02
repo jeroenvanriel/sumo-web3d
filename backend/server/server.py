@@ -5,13 +5,25 @@ import asyncio
 from collections import Counter
 import functools
 import json
-import os
+import os, sys
 import re
 import random
 import shlex
 import time
 import xml.etree.ElementTree as ET
 import ast
+
+# determine if the application is a frozen `.exe` (e.g. pyinstaller --onefile) 
+if getattr(sys, 'frozen', False):
+    DIR = os.path.dirname(sys.executable)
+    SCENARIOS_PATH = os.path.join(DIR, 'scenarios/scenarios.json')
+    SCENARIOS_DIR = os.path.join(DIR, 'scenarios/')
+
+# or a script file (e.g. `.py` / `.pyw`)
+elif __file__:
+    DIR = os.path.join(os.path.dirname(__file__), '..')
+    SCENARIOS_PATH = os.path.join(DIR, '../scenarios/scenarios.json')
+    SCENARIOS_DIR = os.path.join(DIR, '../scenarios/')
 
 from aiohttp import web
 import websockets
@@ -38,11 +50,6 @@ parser.add_argument(
     '--gui', action='store_true', default=False,
     help='Run sumo-gui rather than sumo. This is useful for debugging.')
 
-# Base directory for sumo_web3d
-DIR = os.path.join(os.path.dirname(__file__), '..')
-
-SCENARIOS_PATH = os.path.join(DIR, '../scenarios/scenarios.json')
-SCENARIOS_DIR = os.path.join(DIR, '../scenarios/')
 NO_CACHE_HEADER = {'cache-control': 'no-cache'}
 
 # We use these to tell TraCI which parameters we want to track.
