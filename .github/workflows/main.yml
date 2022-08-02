@@ -17,12 +17,29 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    - name: Package Application
+    - name: PyInstaller Windows
       uses: JackMcKew/pyinstaller-action-windows@main
       with:
         path: .
 
     - uses: actions/upload-artifact@v2
       with:
-        name: name-of-artifact
-        path: src/dist/windows
+        name: executable
+        path: ./dist/windows
+
+  build-linux:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: PyInstaller Linux
+      uses: JackMcKew/pyinstaller-action-linux@0.1.4
+      with:
+        path: .
+
+    - uses: actions/upload-artifact@v2
+      with:
+        name: executable
+        path: ./dist/linux
+
