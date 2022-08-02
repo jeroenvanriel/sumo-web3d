@@ -604,7 +604,9 @@ def main(args):
     app.router.add_get('/ws', ws_handler)
     app.router.add_static('/', path=os.path.join(DIR, 'static'))
 
-    web.run_app(app)
+    port = int(os.environ.get('PORT', 8080))
+    print(f"port={port}")
+    web.run_app(app, port=port)
 
 
 def run():
