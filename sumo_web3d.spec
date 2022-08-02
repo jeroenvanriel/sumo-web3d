@@ -8,7 +8,7 @@ a = Analysis(
     ['backend/sumo_web3d.py'],
     pathex=['backend/server'],
     binaries=[],
-    datas=[('scenarios/scenarios.json', 'scenarios')],
+    datas=[],
     hiddenimports=['colorsys', 'fileinput', 'xml.dom', 'websockets.legacy', 'websockets.legacy.server'],
     hookspath=[],
     runtime_hooks=[],
