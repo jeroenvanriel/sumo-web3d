@@ -1,0 +1,9 @@
+[
+    {
+        "name": "simple-crossing",
+        "description": "Simple crossing with traffic lights",
+        "config_file": "simple-crossing/simple.sumocfg",
+        "fcd_file": "simple-crossing/fcd.xml",
+        "is_default": true
+    }
+]
