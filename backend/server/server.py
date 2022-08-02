@@ -722,25 +722,6 @@ def setup_http_server(scenario_file, scenarios):
 
     return app
 
-import aiohttp
-
-async def websocket_handler(request):
-
-    ws = web.WebSocketResponse()
-    await ws.prepare(request)
-
-    async for msg in ws:
-        if msg.type == aiohttp.WSMsgType.TEXT:
-            if msg.data == 'close':
-                await ws.close()
-            else:
-                await ws.send_str(msg.data + '/answer')
-        elif msg.type == aiohttp.WSMsgType.ERROR:
-            print('ws connection closed with exception %s' %
-                  ws.exception())
-
-    print('websocket connection closed')
-
 
 def main(args):
     global current_scenario, scenarios, SCENARIOS_PATH
@@ -762,36 +743,16 @@ def main(args):
         scenarios = load_scenarios_file({}, SCENARIOS_PATH)
 
     sumo_start_fn = functools.partial(start_sumo_executable, args.gui, args.sumo_args)
-
     ws_handler = functools.partial(
             websocket_simulation_control,
             lambda: sumo_start_fn(getattr(current_scenario, 'config_file'))
         )
-    # ws_server = websockets.serve(ws_handler, '0.0.0.0', 5678)
 
     app = setup_http_server(SCENARIOS_PATH, scenarios)
     app.router.add_get('/ws', ws_handler)
-    # app.router.add_get('/ws', websocket_handler)
-
     app.router.add_static('/', path=os.path.join(DIR, 'static'))
 
     web.run_app(app)
-
-    # loop = asyncio.get_event_loop()
-    # http_server = loop.create_server(
-    #     app.make_handler(),
-    #     '0.0.0.0',
-    #     8000,
-    # )
-
-    # loop.run_until_complete(http_server)
-    # # loop.run_until_complete(ws_server)
-
-    print("""Listening on:
-    127.0.0.1:8000 (HTTP)
-    """)
-
-    # loop.run_forever()
 
 
 def run():
