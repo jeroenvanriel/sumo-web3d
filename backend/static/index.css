@@ -137,3 +137,8 @@ body {
   background-color: rgba(153, 153, 153, 0.2);
   font-size: 11px;
 }
+
+/* fix visibility issue with dat.gui color picker */
+.hue-field {
+  width: 13px !important;
+}
