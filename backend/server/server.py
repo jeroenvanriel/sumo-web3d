@@ -11,6 +11,9 @@ import shlex
 import time
 import xml.etree.ElementTree as ET
 import ast
+import aiohttp
+from aiohttp import web
+import xmltodict
 
 # determine if the application is a frozen `.exe` (e.g. pyinstaller --onefile) 
 if getattr(sys, 'frozen', False):
@@ -24,18 +27,14 @@ elif __file__:
     SCENARIOS_PATH = os.path.join(DIR, '../scenarios/scenarios.json')
     SCENARIOS_DIR = os.path.join(DIR, '../scenarios/')
 
-from aiohttp import web
-import websockets
-import xmltodict
-
 from . import constants  # noqa
 from .deltas import round_vehicles, diff_dicts
-import sumolib
-import traci
 from .xml_utils import get_only_key, parse_xml_file
 
-tc = traci.constants
+import sumolib
+import traci
 
+tc = traci.constants
 
 NO_CACHE_HEADER = {'cache-control': 'no-cache'}
 
@@ -430,7 +429,11 @@ async def run_simulation(ws):
                 snapshot['lane_distributions'] = lane_distributions
 
             snapshot['type'] = 'snapshot'
-            await ws.send_str(json.dumps(snapshot))
+            try:
+                await ws.send_str(json.dumps(snapshot))
+            except ConnectionResetError:
+                print('client closed connection')
+                return
             await asyncio.sleep(delay_length_ms / 1000)
         else:
             await asyncio.sleep(0)
@@ -458,7 +461,7 @@ async def websocket_simulation_control(sumo_start_fn, request):
     await ws.prepare(request)
 
     async for msg in ws:
-        try:
+        if msg.type == aiohttp.WSMsgType.TEXT:
             msg = json.loads(msg.data)
             if msg['type'] == 'action':
                 if msg['action'] == 'start':
@@ -482,10 +485,11 @@ async def websocket_simulation_control(sumo_start_fn, request):
                 await ws.send_str(json.dumps(get_state_websocket_message()))
             else:
                 raise Exception('unrecognized websocket message')
+
         # we need to handle implicit cancelling, ie the client closing their browser
-        except websockets.exceptions.ConnectionClosed:
+        elif msg.type == aiohttp.WSMsgType.ERROR:
+            simulation_status = STATUS_OFF
             cleanup_sumo_simulation(task, live)
-            break
 
     return ws
 
