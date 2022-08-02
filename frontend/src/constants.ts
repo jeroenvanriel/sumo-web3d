@@ -28,7 +28,7 @@ function cgtVehicle(color: string): ModelParams {
   return {
     objectUrl: `/vehicles-new/clio-${color}.glb`,
     scale: CGT_SCALE,
-    offsetY: -3.0,
+    offsetY: -3.1,
     baseColor: new three.Color(...CGT_COLORS_RGB[color]),
     baseColorPart: 'Cube002_1',
   };
