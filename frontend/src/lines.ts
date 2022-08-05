@@ -1,7 +1,7 @@
 import * as three from 'three';
 import * as _ from 'lodash';
 import * as clipperLib from 'js-angusj-clipper/web';
-import { IntPoint, Path, Paths, ReadonlyPath, ReadonlyPaths, EndType } from 'js-angusj-clipper';
+import { IntPoint, ReadonlyPath, ReadonlyPaths, EndType } from 'js-angusj-clipper';
 import { parseShape } from './sumo-utils';
 import { Net } from './api';
 import { Transform } from './coords';
