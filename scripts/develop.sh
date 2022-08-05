@@ -4,6 +4,9 @@
 # Continually rebuild frontend JavaScript.
 yarn watch &
 
+PORT=8080
+export PORT
+
 # Run the python server. It would be nice to restart this on changes, too!
 python backend/sumo_web3d.py $@
 
