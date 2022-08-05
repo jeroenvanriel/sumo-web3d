@@ -1010,6 +1010,11 @@ jest-worker@^27.4.5:
     merge-stream "^2.0.0"
     supports-color "^8.0.0"
 
+js-angusj-clipper@^1.2.1:
+  version "1.2.1"
+  resolved "https://registry.yarnpkg.com/js-angusj-clipper/-/js-angusj-clipper-1.2.1.tgz#2bb8c386e94c9eb4ca5f8e63e739ae5aeef4247a"
+  integrity sha512-/ozbozrSoLMmo5n53Wj1qTV5YZ4Ihpis+p0o8B7pnF/3qU2WX5c+XX4kjIPNwD5PmZOKDq41rg3m0wAMKwkbqA==
+
 js-tokens@^3.0.0, js-tokens@^3.0.2:
   version "3.0.2"
   resolved "https://registry.yarnpkg.com/js-tokens/-/js-tokens-3.0.2.tgz#9866df395102130e38f7f996bceb65443209c25b"

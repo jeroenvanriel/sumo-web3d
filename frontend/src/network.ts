@@ -24,6 +24,8 @@ import { BufferGeometry, Mesh, InstancedMesh, Matrix4, Object3D, Vector3 } from 
 import { mergeBufferGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils';
 import { InitResources } from './initialization';
 
+import { getLines } from './lines';
+
 const DEFAULT_LANE_WIDTH_M = 3.2;
 const LEVEL_HEIGHT_METERS = 3; // how tall is each floor of a building?
 
@@ -503,6 +505,9 @@ export function makeStaticObjects(
   dynamicLaneMaterials: boolean = false
 ): [three.Group, { [laneId: string]: three.ShaderMaterial }, OsmIdToMesh] {
   const group = new three.Group();
+
+  const meshes = getLines(network.net, t);
+  meshes.then(meshes => group.add(meshes));
 
   // Road network
   const {mesh: edgeMesh, laneMaterialsDict: laneMaterials, osmIdToMeshes: osmIdToMesh} = makeMergedEdgeGeometry(network, t, dynamicLaneMaterials);
