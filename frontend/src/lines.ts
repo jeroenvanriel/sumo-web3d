@@ -31,6 +31,11 @@ function fromClipper(points: ReadonlyPath) : number[][] {
   ]);
 }
 
+/**
+ * Determine the lines between lanes and edges.
+ * We use a polygon/line clipping library (clipperjs) to determine the "seams"
+ * between lanes and edges to construct an extruded line geometry.
+ */
 export async function getLines(net: Net, transform: Transform) : Promise<three.Object3D> {
   const clipper = await clipperLib.loadNativeClipperLibInstanceAsync(
     clipperLib.NativeClipperLibRequestedFormat.WasmWithAsmJsFallback
