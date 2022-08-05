@@ -9,11 +9,12 @@ import PanAndRotateControls from './controls/pan-and-rotate-controls';
 import {OrbitControls} from 'three/examples/jsm/controls/OrbitControls';
 import {XZPlaneMatrix4} from './controls/utils';
 import {getTransforms, LatLng, Transform} from './coords';
-import Postprocessing, {FOG_RATE, BLOOM_SCENE} from './effects/postprocessing';
+import Postprocessing, {FOG_RATE} from './effects/postprocessing';
 import {addSkybox, addLights} from './effects/sky';
 import {InitResources, Model} from './initialization';
 import {HIGHLIGHT} from './materials';
-import {makeStaticObjects, MeshAndPosition, OsmIdToMesh} from './network';
+import { makeStaticObjects, MeshAndPosition, OsmIdToMesh } from './network';
+import { getLines } from './lines';
 import {pointCameraAtScene} from './scene-finder';
 import TrafficLights from './traffic-lights';
 import {forceArray} from './utils';
@@ -131,6 +132,16 @@ export default class Sumo3D {
     );
     this.camera.position.set(centerX, initY, centerZ);
 
+    this.postprocessing = new Postprocessing(
+      this.camera,
+      this.scene,
+      this.renderer,
+      width,
+      height,
+    );
+
+    this.postprocessing.bloomEffect.ignoreBackground = true;
+
     addSkybox(this.scene, centerX, centerZ);
     addLights(this.scene, centerX, centerZ);
 
@@ -154,6 +165,14 @@ export default class Sumo3D {
     );
 
     this.scene.add(staticGroup);
+
+    const meshes = getLines(init.network.net, this.transform);
+    meshes.then(meshes => {
+      _.map(meshes, mesh => {
+        this.scene.add(mesh);
+        this.postprocessing.bloomEffect.selection.add(mesh);
+      });
+    });
 
     pointCameraAtScene(this.camera, this.scene);
 
@@ -184,16 +203,6 @@ export default class Sumo3D {
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
     this.controls.screenSpacePanning = false;
     this.controls.update();
-
-    this.postprocessing = new Postprocessing(
-      this.camera,
-      this.scene,
-      this.renderer,
-      width,
-      height,
-      centerX,
-      centerZ,
-    );
 
     this.stats = new Stats();
     this.simTimePanel = this.stats.addPanel(new Stats.Panel('simMs', '#fff', '#777'));

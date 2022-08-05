@@ -12,11 +12,6 @@ const SCALE = 1000;
 const LINE_OFFSET = 0.08;
 const LINE_WIDTH = 0.08;
 
-function getPoints(shape: string, transform: Transform) {
-  let points = parseShape(shape);
-  return _.map(points, p => transform.xyToXz(p));
-}
-
 function toClipper(points: number[][]) : IntPoint[] {
   return _.map(points, (point) => ({
     x: Math.round(SCALE * point[0]),
@@ -36,7 +31,7 @@ function fromClipper(points: ReadonlyPath) : number[][] {
  * We use a polygon/line clipping library (clipperjs) to determine the "seams"
  * between lanes and edges to construct an extruded line geometry.
  */
-export async function getLines(net: Net, transform: Transform) : Promise<three.Object3D> {
+export async function getLines(net: Net, transform: Transform) : Promise<three.Mesh[]> {
   const clipper = await clipperLib.loadNativeClipperLibInstanceAsync(
     clipperLib.NativeClipperLibRequestedFormat.WasmWithAsmJsFallback
   );
@@ -110,7 +105,7 @@ export async function getLines(net: Net, transform: Transform) : Promise<three.O
     return {
       id: edge.id,
       lanes: _.map(lanes, (lane, id) => {
-        const points = getPoints(lane.shape, transform);
+        const points = parseShape(lane.shape);
         return extrudePolyline(toClipper(points), 1.6005 * SCALE);
       })
     };
@@ -158,7 +153,7 @@ export async function getLines(net: Net, transform: Transform) : Promise<three.O
   // skip `dead_end` and `internal` junctions
   const junctions = _.filter(net.junction, junction => ['traffic_light', 'priority'].includes(junction.type));
   const junction_polys = _.map(junctions, junction => {
-    const points = getPoints(junction.shape, transform);
+    const points = parseShape(junction.shape);
     return toClipper(points);
   });
 
@@ -213,22 +208,24 @@ export async function getLines(net: Net, transform: Transform) : Promise<three.O
     const geometry = new three.ShapeGeometry( shape );
     material.side = three.DoubleSide;
     const mesh = new three.Mesh( geometry, material );
-    mesh.rotation.set(Math.PI / 2, 0, 0);
+    mesh.rotation.set(-Math.PI / 2, 0, 0);
+    mesh.translateY(-transform.bottom);
     return mesh;
   }
-
-  const group = new three.Group();
 
   // TODO(Jeroen): we have the merged road anyway, so we could use it instead of using the old generation code
   // const roadMaterial = new three.MeshBasicMaterial({ color: 'black' });
   // _.map(merged_road, p => group.add(polygonToMesh([p], roadMaterial)));
 
+  const meshes: three.Mesh[] = [];
   const lineMaterial = new three.MeshBasicMaterial({ color: 'white' });
+  lineMaterial.side = three.DoubleSide;
   _.map(line_polys, p => {
       const mesh = polygonToMesh(p, lineMaterial);
-      mesh.translateZ(-0.01);
-      group.add(mesh);
+      // up a little bit to prevent interferance with road
+      mesh.translateZ(0.01);
+      meshes.push(mesh);
   })
 
-  return group;
+  return meshes;
 }
