@@ -36,6 +36,7 @@ export default class TrafficLights {
 
   private tlsGroup: three.Group;
   private tlsOffsetPrev = 0;
+  private tubesGroup: three.Group;
   private arrowsGroup: three.Group;
 
   constructor(init: InitResources, config: Config) { 
@@ -50,8 +51,9 @@ export default class TrafficLights {
   }
 
   loadNetwork(network: Network, t: Transform): three.Group {
-    const {net} = network;
+    const { net } = network;
     this.tlsGroup = new three.Group();
+    this.tubesGroup = new three.Group();
     this.arrowsGroup = new three.Group();
 
     const tlConnections = _.filter(net.connection, c => _.has(c, 'tl'));
@@ -59,53 +61,102 @@ export default class TrafficLights {
 
     const edgeIdToEdge = _.keyBy(net.edge, 'id');
 
-    _.forEach(tlConnections, connection => {
-      const lightId = connection.tl;
-      const {dir} = connection;
-      const lanes = forceArray(edgeIdToEdge[connection.from].lane);
-      const lane = lanes[Number(connection.fromLane)];
-      const laneId = lane.id;
+    _.forEach(_.groupBy(tlConnections, 'from'), connections => {
+      if (connections.length == 0) return;
+      const edgeId = connections[0].from
+      const edge = edgeIdToEdge[edgeId];
 
-      // keep a count of all lights in a lane, so we can offset their height
-      lightCounts[laneId] = (lightCounts[laneId] || 0) + 1;
+      const tlLocations: three.Vector3[] = [];
+      const poleHeight = 7;
 
-      const light = this.getObjectForDirection(dir).clone();
-      const name = `Light ${lightId} ${laneId} ${dir}`;
-      light.traverse(obj => {
-        obj.name = name;
-        // Add a type so lights will be included in datastore.clickedObjects
-        obj.userData = {
-          type: 'light',
-        };
+      let yRotation = 0;
+
+      _.forEach(connections, connection => {
+        const lightId = connection.tl;
+        const { dir } = connection;
+        const lanes = forceArray(edge.lane);
+        const lane = lanes[Number(connection.fromLane)];
+        const laneId = lane.id;
+
+        // keep a count of all lights in a lane, so we can offset their height
+        lightCounts[laneId] = (lightCounts[laneId] || 0) + 1;
+
+        const light = this.getObjectForDirection(dir).clone();
+        const name = `Light ${lightId} ${laneId} ${dir}`;
+        light.traverse(obj => {
+          obj.name = name;
+          // Add a type so lights will be included in datastore.clickedObjects
+          obj.userData = {
+            type: 'light',
+          };
+        });
+
+        const shape = parseShape(lane.shape);
+        const [x, y = 0, z] = t.sumoXyzToXyz(shape[shape.length - 1]);
+        const [px, , pz] = t.sumoXyzToXyz(shape[shape.length - 2]);
+        // use the lane's last 2 points to determine the angle of the light
+        yRotation = Math.atan2(z - pz, px - x);
+
+        const pos = new three.Vector3(x, -2.1 + y + lightCounts[laneId] * 0.85, z);
+        light.position.copy(pos);
+        light.rotation.set(0, yRotation, 0);
+        this.arrowsGroup.add(light);
+        if (!this.lightObjects[lightId]) {
+          this.lightObjects[lightId] = [];
+        }
+        this.lightObjects[lightId][Number(connection.linkIndex)] = light;
+
+        // only add a fixture when the first arrow is added
+        if (lightCounts[laneId] == 1) {
+          const fixture = this.trafficLight.object.clone();
+          fixture.position.set(x, y, z);
+          fixture.rotation.set(0, yRotation, 0);
+          this.tlsGroup.add(fixture);
+
+          const fixturePoint = new three.Vector3().copy(pos);
+          fixturePoint.setComponent(1, poleHeight);
+          tlLocations.push(fixturePoint);
+        }
       });
 
-      const shape = parseShape(lane.shape);
-      const [x, y = 0, z] = t.sumoXyzToXyz(shape[shape.length - 1]);
-      const [px, , pz] = t.sumoXyzToXyz(shape[shape.length - 2]);
-      // use the lane's last 2 points to determine the angle of the light
-      const yRotation = Math.atan2(z - pz, px - x);
-
-      light.position.set(x, -2.1 + y + lightCounts[laneId] * 0.85, z);
-      light.rotation.set(0, yRotation, 0);
-      this.arrowsGroup.add(light);
-      if (!this.lightObjects[lightId]) {
-        this.lightObjects[lightId] = [];
+      function createTube(path: three.Curve<three.Vector3>) {
+        const geometry = new three.TubeGeometry( path, 30, 0.15, 8, false );
+        const material = new three.MeshBasicMaterial( { color: 0x111111 } );
+        return new three.Mesh( geometry, material );
       }
-      this.lightObjects[lightId][Number(connection.linkIndex)] = light;
 
-      // only add a fixture when the first arrow is added
-      if (lightCounts[laneId] == 1) {
-        const fixture = this.trafficLight.object.clone();
-        fixture.position.set(x, y, z);
-        fixture.rotation.set(0, yRotation, 0);
-        this.tlsGroup.add(fixture);
-      }
+      // determine position of vertical pole
+      const offsetZ = new three.Vector3(0, 0, -3);
+      const offsetX = new three.Vector3(-0.3, 0, 0);
+      offsetZ.applyAxisAngle(new three.Vector3(0, 1, 0), yRotation);
+      offsetX.applyAxisAngle(new three.Vector3(0, 1, 0), yRotation);
+
+      const origin = new three.Vector3();
+      origin.copy(tlLocations[0]);
+      origin.add(offsetZ); // move to the side
+      origin.add(offsetX); // move back a little
+      origin.setComponent(1, 0); // set to ground
+
+      // draw vertical part
+      let previous = new three.Vector3(0, poleHeight, 0).add(origin);
+      const vertical = new three.LineCurve3(origin, previous);
+      this.tubesGroup.add(createTube(vertical));
+
+      // draw horizontal parts
+      const path = new three.CurvePath<three.Vector3>();
+      _.forEach(tlLocations, location => {
+        location.add(offsetX);
+        path.add(new three.LineCurve3(previous, location));
+        previous = location;
+      });
+      
+      this.tubesGroup.add(createTube(path));
     });
 
     // set initial offset
     this.updateOffset();
 
-    const group = new three.Group().add(this.tlsGroup).add(this.arrowsGroup);
+    const group = new three.Group().add(this.tlsGroup).add(this.tubesGroup).add(this.arrowsGroup);
     return group;
   }
 
