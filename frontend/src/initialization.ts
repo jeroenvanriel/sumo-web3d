@@ -57,7 +57,7 @@ export interface InitResources {
 }
 
 const {hostname} = window.location;
-const WEB_SOCKETS_ENDPOINT = `ws://${hostname}:8080/ws`;
+const WEB_SOCKETS_ENDPOINT = `ws://${hostname}:5678/ws`;
 
 const textureLoader = new three.TextureLoader();
 const mtlLoader = new MTLLoader();
