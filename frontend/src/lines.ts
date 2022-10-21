@@ -218,8 +218,7 @@ export async function getLines(net: Net, transform: Transform) : Promise<three.M
   // _.map(merged_road, p => group.add(polygonToMesh([p], roadMaterial)));
 
   const meshes: three.Mesh[] = [];
-  const lineMaterial = new three.MeshBasicMaterial({ color: 'white' });
-  lineMaterial.side = three.DoubleSide;
+  const lineMaterial = new three.MeshBasicMaterial({ color: new three.Color(0.7, 0.7, 0.7) });
   _.map(line_polys, p => {
       const mesh = polygonToMesh(p, lineMaterial);
       // up a little bit to prevent interferance with road
