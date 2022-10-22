@@ -10,12 +10,12 @@ const SHADOW_MAP_SIZES = {
 const SHADOW_MAP_SIZE_DEFAULT = 'medium';
 
 // Constants tweaked for Toronto, may need changes for other places.
-const TARGET_OFFSET_X = -100;
-const TARGET_OFFSET_Z = -100;
+const TARGET_OFFSET_X = -50;
+const TARGET_OFFSET_Z = -50;
 const POS_OFFSET_X = 0;
 const POS_Y = 100;
 const POS_OFFSET_Z = 0;
-const LIGHT_WIDTH = 300;
+const LIGHT_WIDTH = 100;
 
 const AMBIENT_LIGHT_COLOR = 0xffffff;
 const DIRECTIONAL_LIGHT_COLOR = 0xffffff;
