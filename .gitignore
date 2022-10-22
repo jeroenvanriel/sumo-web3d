@@ -9,7 +9,7 @@ node_modules
 
 # just ignore scenarios by default
 # add examples manually, if necessary
-scenarios/
+scenarios/*
 # FCD files are generally too big
 *fcd.xml
 
@@ -17,6 +17,7 @@ scenarios/
 *.blend1
 
 # Generated static files
+static
 *.bundle.js
 *.bundle.js.map
 *.pbf
@@ -28,4 +29,3 @@ scenarios/
 # pyenv setting
 .python-version
 
-scenarios/*
