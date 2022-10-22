@@ -37,7 +37,13 @@ function cgtVehicle(color: string): ModelParams {
 export const SUPPORTED_VEHICLE_TYPES: {[sumoVehicleType: string]: SupportedVehicle} = {
   car: {
     label: 'car',
-    models: _.map(CGT_COLORS, color => cgtVehicle(color)),
+    models: [{
+      objectUrl: `/vehicles-new/clio-smooth.glb`,
+      scale: CGT_SCALE,
+      offsetY: -3.0,
+      baseColor: new three.Color('red'),
+      baseColorPart: 'Cube002_1',
+    }]
   },
   ambulance: {
     label: 'ambulance',
