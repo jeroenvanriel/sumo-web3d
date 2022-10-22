@@ -4,10 +4,8 @@ import * as Stats from 'stats.js';
 import * as three from 'three';
 
 import {LaneMap, LightInfo, SimulationState, VehicleInfo} from './api';
-import FollowVehicleControls from './controls/follow-controls';
-import PanAndRotateControls from './controls/pan-and-rotate-controls';
-import {OrbitControls} from 'three/examples/jsm/controls/OrbitControls';
-import {XZPlaneMatrix4} from './controls/utils';
+import {MapControls, OrbitControls} from 'three/examples/jsm/controls/OrbitControls';
+import {TrackballControls} from 'three/examples/jsm/controls/TrackballControls';
 import {getTransforms, LatLng, Transform} from './coords';
 import Postprocessing, {FOG_RATE} from './effects/postprocessing';
 import {addSkybox, addLights} from './effects/sky';
@@ -77,7 +75,9 @@ export default class Sumo3D {
   private camera: three.PerspectiveCamera;
   private scene: three.Scene;
   private renderer: three.WebGLRenderer;
-  private controls: PanAndRotateControls | FollowVehicleControls | OrbitControls;
+  private controls_move: OrbitControls;
+  private controls_zoom: TrackballControls;
+  private following: three.Object3D | null;
   public simulationState: SimulationState;
   private vTypeModels: {[vehicleType: string]: Model[]};
   private trafficLights: TrafficLights;
@@ -195,16 +195,22 @@ export default class Sumo3D {
 
     parentElement.appendChild(this.renderer.domElement);
 
-    // this.controls = new PanAndRotateControls(
-    //   this.camera,
-    //   this.renderer.domElement,
-    //   this.groundPlane,
-    // );
-    this.controls = new OrbitControls(this.camera, this.renderer.domElement);
-    this.controls.enableDamping = true;
-    this.controls.dampingFactor = 0.05;
-    this.controls.screenSpacePanning = false;
-    this.controls.update();
+    this.controls_move = new MapControls(this.camera, this.renderer.domElement);
+    this.controls_move.enableDamping = true;
+    this.controls_move.dampingFactor = 0.05;
+    this.controls_move.screenSpacePanning = false;
+    this.controls_move.enableZoom = false;
+    this.controls_move.rotateSpeed = 0.5;
+    this.controls_move.maxPolarAngle = 0.495 * Math.PI;
+    
+    this.controls_zoom = new TrackballControls(this.camera, this.renderer.domElement);
+    this.controls_zoom.noRotate = true;
+    this.controls_zoom.noPan = true;
+    this.controls_zoom.noZoom = false;
+    this.controls_zoom.zoomSpeed = 0.05;
+    this.controls_zoom.dynamicDampingFactor = 0.05; // set dampening factor
+    this.controls_zoom.minDistance = 10;
+    this.controls_zoom.maxDistance = 1000;
 
     this.stats = new Stats();
     this.simTimePanel = this.stats.addPanel(new Stats.Panel('simMs', '#fff', '#777'));
@@ -270,10 +276,8 @@ export default class Sumo3D {
     const vehicle = this.vehicles[vehicleId];
     if (vehicle) {
       this.scene.remove(vehicle.mesh);
-      if (
-        this.controls instanceof FollowVehicleControls &&
-        vehicleId === this.controls.object.name
-      ) {
+      if (this.following && vehicleId === this.following.name) {
+        this.following = null;
         this.params.onUnfollow();
       }
       this.params.onRemove(vehicleId);
@@ -298,7 +302,20 @@ export default class Sumo3D {
   }
 
   animate() {
-    this.controls.update();
+    let target = new three.Vector3();
+    if (this.following) {
+      this.following.getWorldPosition(target);
+      this.controls_move.enablePan = false;
+      this.controls_move.target.copy(target);
+      this.controls_move.update();
+    } else {
+      this.controls_move.enablePan = true;
+      this.controls_move.update();
+      target = this.controls_move.target;
+    }
+    this.controls_zoom.target.set(target.x, target.y, target.z);
+    this.controls_zoom.update();
+
     this.postprocessing.render();
     this.stats.update();
 
@@ -309,26 +326,12 @@ export default class Sumo3D {
     const vehicle = this.vehicles[vehicleId];
     if (vehicle) {
       const object = vehicle.mesh;
-      this.controls.dispose();
-      this.controls = new FollowVehicleControls(object, this.camera, document.body);
-      this.controls.update();
+      this.following = object;
     }
   }
 
   unfollowPOV() {
-    if (this.controls instanceof FollowVehicleControls) {
-      // Place camera over vehicle's arrival location
-      const translation = new three.Vector3(0, 100, 0);
-      this.camera.position.copy(translation.applyMatrix4(this.controls.object.matrix));
-      this.controls.dispose();
-      this.controls = new PanAndRotateControls(
-        this.camera,
-        this.renderer.domElement,
-        this.groundPlane,
-      );
-      // Have the camera look out over the horizon
-      this.camera.setRotationFromMatrix(XZPlaneMatrix4);
-    }
+    this.following = null;
   }
 
   onShowRouteObject(edgeIds: string[]) {
@@ -338,7 +341,8 @@ export default class Sumo3D {
 
   /** Point the camera down at some SUMO coordinates. */
   moveCameraTo(sumoX: number, sumoY: number, sumoZ: number | null) {
-    if (!(this.controls instanceof FollowVehicleControls)) {
+    // TODO: actually update the controls instead of the camera directly
+    if (!this.following) {
       if (sumoZ) {
         const [x, y, z] = this.transform.sumoXyzToXyz([sumoX, sumoY, sumoZ]);
         this.camera.position.set(x, y, z);
@@ -353,12 +357,10 @@ export default class Sumo3D {
 
   moveCameraControlCenter(sumoX: number, sumoY: number, sumoZ: number) {
     // move the camera controls center of rotation to this point
-    console.log('center');
-  
-    if (this.controls instanceof OrbitControls) {
+    if (!this.following) {
       const [x, y, z] = this.transform.sumoXyzToXyz([sumoX, sumoY, sumoZ]);
-      this.controls.target = new three.Vector3(x, y, z);
-      this.controls.update();
+      this.controls_move.target = new three.Vector3(x, y, z);
+      this.controls_move.update();
     }
   }
 
