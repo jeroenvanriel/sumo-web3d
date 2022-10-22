@@ -17,7 +17,7 @@ scenarios/*
 *.blend1
 
 # Generated static files
-static
+backend/static/
 *.bundle.js
 *.bundle.js.map
 *.pbf
