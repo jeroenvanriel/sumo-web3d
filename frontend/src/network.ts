@@ -523,6 +523,7 @@ export function makeStaticObjects(
   // Buildings
   if (models.building) {
     const buildingsMesh = generateBuildings(models.building.object, 10, t, group);
+    buildingsMesh.visible = config.get('environment', 'buildings');
     group.add(buildingsMesh);
     config.listen((v: boolean) => {
       buildingsMesh.visible = v;
