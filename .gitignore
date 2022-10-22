@@ -28,3 +28,4 @@ scenarios/
 # pyenv setting
 .python-version
 
+scenarios/*
