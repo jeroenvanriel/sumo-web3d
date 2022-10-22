@@ -156,6 +156,7 @@ export default class Sumo3D {
 
     let staticGroup: three.Group;
     [staticGroup, this.laneMaterials, this.osmIdToMeshes] = makeStaticObjects(
+      config,
       init.network,
       init.additional,
       init.water,
@@ -185,7 +186,7 @@ export default class Sumo3D {
     this.groundPlane = this.scene.getObjectByName('Land') as three.Object3D<Event>;
     config.listen((v: boolean) => {
       this.groundPlane.visible = v;
-    }, 'groundPlane', 'visible');
+    }, 'environment', 'groundPlane');
 
     // this.groundPlane.layers.toggle( BLOOM_SCENE );
 

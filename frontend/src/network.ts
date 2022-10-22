@@ -23,6 +23,7 @@ import {forceArray, makeLookup, FeatureCollection} from './utils';
 import { BufferGeometry, Mesh, InstancedMesh, Matrix4, Object3D, Vector3 } from 'three';
 import { mergeBufferGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils';
 import { InitResources } from './initialization';
+import Config from './config';
 
 const DEFAULT_LANE_WIDTH_M = 3.2;
 const LEVEL_HEIGHT_METERS = 3; // how tall is each floor of a building?
@@ -495,6 +496,7 @@ function generateBuildings(
  * features to the group after it returns.
  */
 export function makeStaticObjects(
+  config: Config,
   network: Network,
   additionalResponse: AdditionalResponse | null,
   lakes: FeatureCollection | null,
@@ -513,13 +515,19 @@ export function makeStaticObjects(
   if (models.tree) {
     const treesMesh = generateTrees(models.tree.object, 30, t, group);
     group.add(treesMesh);
+    config.listen((v: boolean) => {
+      treesMesh.visible = v;
+    }, 'environment', 'trees');
   }
 
   // Buildings
-  // if (models.building) {
-  //   const buildingsMesh = generateBuildings(models.building, 10, t, group);
-  //   group.add(buildingsMesh);
-  // }
+  if (models.building) {
+    const buildingsMesh = generateBuildings(models.building.object, 10, t, group);
+    group.add(buildingsMesh);
+    config.listen((v: boolean) => {
+      buildingsMesh.visible = v;
+    }, 'environment', 'buildings');
+  }
 
   // Land mesh
   let [left, top, right, bottom] = network.net.location.convBoundary.split(',').map(Number);

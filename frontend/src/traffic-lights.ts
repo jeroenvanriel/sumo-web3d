@@ -39,6 +39,8 @@ export default class TrafficLights {
   private tubesGroup: three.Group;
   private arrowsGroup: three.Group;
 
+  private group: three.Group; /* all trafficlights */
+
   constructor(init: InitResources, config: Config) { 
     this.config = config;
     this.arrows = init.arrows;
@@ -47,7 +49,8 @@ export default class TrafficLights {
     this.updateOffset = this.updateOffset.bind(this)
     this.loadNetwork = this.loadNetwork.bind(this)
 
-    config.controllers['trafficLight']['offset'].onChange(this.updateOffset);
+    config.listen(this.updateOffset, 'environment', 'trafficLightOffset')
+    config.listen((v: boolean) => this.group.visible = v, 'environment', 'trafficLight')
   }
 
   loadNetwork(network: Network, t: Transform): three.Group {
@@ -156,12 +159,12 @@ export default class TrafficLights {
     // set initial offset
     this.updateOffset();
 
-    const group = new three.Group().add(this.tlsGroup).add(this.tubesGroup).add(this.arrowsGroup);
-    return group;
+    this.group = new three.Group().add(this.tlsGroup).add(this.tubesGroup).add(this.arrowsGroup);
+    return this.group;
   }
 
   private updateOffset() {
-    const tlsOffset = this.config.get('trafficLight', 'offset');
+    const tlsOffset = this.config.get('environment', 'trafficLightOffset');
     this.tlsGroup.position.y += tlsOffset - this.tlsOffsetPrev;
     this.arrowsGroup.position.y += tlsOffset - this.tlsOffsetPrev;
     this.tlsOffsetPrev = tlsOffset;

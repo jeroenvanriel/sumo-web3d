@@ -6,18 +6,19 @@ export default class Config {
 
     // TODO: load/save this to/from file
     private config : Record<string, Record<string, any>>  = {
-        trafficLight: {
-            offset: { value: 7, min: 0, max: 20 },
-        },
         vehicle: {
             colorSpeed: { value: true },
             colorSpeedMax: { value: 15 },
             colorSpeedLow: { color: [255, 0, 0] },
             colorSpeedHigh: { color: [0, 255, 0] },
         },
-        groundPlane: {
-            visible: { value: true },
-        },
+        environment: {
+            groundPlane: { value: true },
+            trees: { value: true },
+            buildings: { value: false },
+            trafficLight: { value: true },
+            trafficLightOffset: { value: 7, min: 0, max: 20 },
+        }
     }
 
     public controllers : { [category: string] :
