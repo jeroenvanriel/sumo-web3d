@@ -47,7 +47,7 @@ export default class Config {
     }
 
     private hexToRgb(hex: string) {
-        const result = /^#?([a-fd]{2})([a-fd]{2})([a-fd]{2})$/i.exec(hex);
+        const result = /^#?([a-f0-9]{2})([a-f0-9]{2})([a-f0-9]{2})$/i.exec(hex);
         if (result) {
             const r = parseInt(result[1], 16);
             const g = parseInt(result[2], 16);
