@@ -208,7 +208,7 @@ export default class Sumo3D {
     this.controls_zoom.noRotate = true;
     this.controls_zoom.noPan = true;
     this.controls_zoom.noZoom = false;
-    this.controls_zoom.zoomSpeed = 0.05;
+    this.controls_zoom.zoomSpeed = 0.4;
     this.controls_zoom.dynamicDampingFactor = 0.05; // set dampening factor
     this.controls_zoom.minDistance = 10;
     this.controls_zoom.maxDistance = 1000;
