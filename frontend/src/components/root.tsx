@@ -1,5 +1,6 @@
 import MuiThemeProvider from 'material-ui/styles/MuiThemeProvider';
 import * as React from 'react';
+import { ConfigManager } from '../config';
 
 import {State} from '../datastore';
 import Sidebar from './sidebar';
@@ -19,6 +20,7 @@ export interface RootProps extends State {
   onFocusOnTrafficLight: () => any;
   handleSearch: (input: string) => any;
   deselectSearch: () => any;
+  configManager: ConfigManager;
 }
 
 export default class Root extends React.Component<RootProps, {}> {

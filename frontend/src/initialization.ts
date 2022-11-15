@@ -12,8 +12,8 @@ import {OBJLoader} from 'three/examples/jsm/loaders/OBJLoader';
 import {MTLLoader} from 'three/examples/jsm/loaders/MTLLoader';
 import {GLTFLoader} from 'three/examples/jsm/loaders/GLTFLoader';
 
-import { SUPPORTED_VEHICLE_TYPES, MODELS } from './constants';
-import { Color, Mesh, MeshPhongMaterial, Object3D } from 'three';
+import { MeshPhongMaterial, Object3D } from 'three';
+import { Config, ConfigManager } from './config';
 
 export interface ModelParams {
   objectUrl: string;
@@ -21,7 +21,7 @@ export interface ModelParams {
   scale?: number;
   position?: { x: number, y: number, z: number };
   offsetY?: number,
-  baseColor?: Color,
+  baseColor?: string,
   baseColorPart?: string,
 }
 
@@ -54,6 +54,7 @@ export interface InitResources {
   reactRootEl: HTMLElement;
   sumoRootEl: HTMLElement;
   isProjection: boolean;
+  configManager: ConfigManager;
 }
 
 const {hostname} = window.location;
@@ -150,17 +151,17 @@ async function enableVehicleShadows(model: Promise<Model>) {
   return model;
 }
 
-function loadVehicles(): {[vehicleType: string]: Promise<Model[]>} {
+function loadVehicles(config: Config): {[vehicleType: string]: Promise<Model[]>} {
   // map each vehicle type to an array of all possible models
-  return _.mapValues(SUPPORTED_VEHICLE_TYPES, (v, k) =>
+  return _.mapValues(config.vehicles, (v, k) =>
     Promise.all(
       _.map(v.models, model => enableVehicleShadows(loadObject3D(model)))
     )
   );
 }
 
-function loadModels(): {[name: string]: Promise<Model>} {
-  return _.mapValues(MODELS, (v, k) => loadObject3D(v));
+function loadModels(config: Config): {[name: string]: Promise<Model>} {
+  return _.mapValues(config.models, (v, k) => loadObject3D(v));
 }
 
 async function fetchJson<T>(url: string): Promise<T> {
@@ -206,12 +207,15 @@ export default async function init(): Promise<InitResources> {
     webSocket.onerror = reject;
   });
 
+  const configManager = new ConfigManager();
+  await configManager.loadFromFile();
+
   try {
     const {dom, ...resources} = await promiseObject({
       additional: fetchJsonAllowFail<AdditionalResponse>('additional'),
       availableScenarios: fetchJson<ScenarioName[]>('/scenarios'),
-      vehicles: promiseObject(loadVehicles()),
-      models: promiseObject(loadModels()),
+      vehicles: promiseObject(loadVehicles(configManager.config)),
+      models: promiseObject(loadModels(configManager.config)),
       water: fetchJson<FeatureCollection>('water'),
       settings: fetchJsonAllowFail<SumoSettings>('settings'),
       lanemap: fetchJsonAllowFail<LaneMap>('lanemap'),
@@ -238,6 +242,7 @@ export default async function init(): Promise<InitResources> {
       isProjection,
       reactRootEl: getOrThrow('sidebar'),
       sumoRootEl: getOrThrow('canvas-wrapper'),
+      configManager: configManager,
     };
   } catch (e) {
     webSocket.close();

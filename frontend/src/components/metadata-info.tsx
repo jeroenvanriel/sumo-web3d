@@ -9,7 +9,7 @@ import {LatLng} from '../coords';
 
 import {RootProps} from './root';
 
-import { SUPPORTED_VEHICLE_TYPES } from '../constants';
+import { ConfigManager } from '../config';
 
 const SelectedPoint = (props: {point: LatLng}) => {
   const {lat, lng} = props.point;
@@ -47,12 +47,12 @@ const SelectedVehicle = (props: {id: string; info: VehicleInfo}) => (
   </div>
 );
 
-const VehicleCounter = (props: {vehicleCounts: {[vehicleType: string]: number}}) => {
+const VehicleCounter = (props: {vehicleCounts: {[vehicleType: string]: number}, configManager: ConfigManager}) => {
   const {vehicleCounts} = props;
   return (
     <div className="vehicle-counter">
       {_.map(vehicleCounts, (count, vType) => {
-        const supportedVehicle = SUPPORTED_VEHICLE_TYPES[vType];
+        const supportedVehicle = props.configManager.config.vehicles[vType];
         const label = supportedVehicle ? supportedVehicle.label : vType;
         return (
           <div key={vType}>
@@ -69,6 +69,7 @@ const SelectedObject = (props: {
   followObjectPOV: (object: string) => any;
   edgesHighlighted: boolean;
   toggleRouteObjectHighlighted: (object: string) => any;
+  configManager: ConfigManager;
 }) => {
   const {name, type, osmId} = props.object;
   if (osmId) {
@@ -80,7 +81,7 @@ const SelectedObject = (props: {
         </a>
       </li>
     );
-  } else if (type && SUPPORTED_VEHICLE_TYPES[type]) {
+  } else if (type && props.configManager.config.vehicles[type]) {
     return (
       <li>
         {name}
@@ -135,7 +136,7 @@ export default (props: RootProps) => {
       </div>
       <h3>Vehicle Summary</h3>
       <div className="metadata-section">
-        <VehicleCounter vehicleCounts={stats.vehicleCounts} />
+        <VehicleCounter vehicleCounts={stats.vehicleCounts} configManager={props.configManager} />
       </div>
       <h3>Click Summary</h3>
       <div className="metadata-section">
@@ -154,6 +155,7 @@ export default (props: RootProps) => {
                 followObjectPOV={followObjectPOV}
                 edgesHighlighted={edgesHighlighted}
                 toggleRouteObjectHighlighted={toggleRouteObjectHighlighted}
+                configManager={props.configManager}
               />
             ))}
           </div>

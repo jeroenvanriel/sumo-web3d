@@ -17,7 +17,7 @@ import {pointCameraAtScene} from './scene-finder';
 import TrafficLights from './traffic-lights';
 import {forceArray} from './utils';
 import Vehicle from './vehicle';
-import Config from './config';
+import { ConfigManager } from './config';
 
 const {hostname} = window.location;
 export const SUMO_ENDPOINT = `http://${hostname}:5000`;
@@ -68,6 +68,7 @@ export default class Sumo3D {
   parentElement: HTMLElement;
 
   public osmIdToMeshes: OsmIdToMesh;
+  private configManager: ConfigManager;
   private laneMaterials: { [laneId: string]: three.ShaderMaterial };
   private lanemap: LaneMap | null;
   private transform: Transform;
@@ -145,18 +146,19 @@ export default class Sumo3D {
     addSkybox(this.scene, centerX, centerZ);
     addLights(this.scene, centerX, centerZ);
 
-    const config = new Config();
-    this.updateVehicleColors = this.updateVehicleColors.bind(this);
-    config.listen(this.updateVehicleColors, 'vehicle')
-    this.trafficLights = new TrafficLights(init, config);
+    this.configManager = init.configManager;
 
-    Vehicle.setConfig(config);
+    this.updateVehicleColors = this.updateVehicleColors.bind(this);
+    init.configManager.listen(this.updateVehicleColors, 'vehicle')
+    this.trafficLights = new TrafficLights(init, init.configManager);
+
+    Vehicle.setConfigManager(init.configManager);
 
     this.lanemap = init.lanemap;
 
     let staticGroup: three.Group;
     [staticGroup, this.laneMaterials, this.osmIdToMeshes] = makeStaticObjects(
-      config,
+      init.configManager,
       init.network,
       init.additional,
       init.water,
@@ -184,7 +186,7 @@ export default class Sumo3D {
     }
 
     this.groundPlane = this.scene.getObjectByName('Land') as three.Object3D<Event>;
-    config.listen((v: boolean) => {
+    this.configManager.listen((v: boolean) => {
       this.groundPlane.visible = v;
     }, 'environment', 'groundPlane');
 

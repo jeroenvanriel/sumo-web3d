@@ -2,7 +2,6 @@
 import * as _ from 'lodash';
 
 import {Delta, ScenarioName, SimulationStatus, VehicleInfo, WebsocketMessage} from './api';
-import {SUPPORTED_VEHICLE_TYPES} from './constants';
 import {LatLng} from './coords';
 import {InitResources} from './initialization';
 import Sumo3D, {NameAndUserData, SumoState, SUMO_ENDPOINT} from './sumo3d';
@@ -181,7 +180,7 @@ export default function createStore(init: InitResources) {
     sumo3d.unselectMeshes();
 
     // Check clicked objects for a vehicle
-    const validVehicleTypes = Object.keys(SUPPORTED_VEHICLE_TYPES);
+    const validVehicleTypes = Object.keys(init.configManager.config.vehicles);
     const clickedVehicle = _.find(objects, object =>
       _.includes(validVehicleTypes, object.type),
     );

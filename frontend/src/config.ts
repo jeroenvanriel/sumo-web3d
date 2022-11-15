@@ -1,11 +1,22 @@
 import * as _ from 'lodash';
 import * as dat from 'dat.gui/build/dat.gui.js';
 
-export default class Config {
+import { ModelParams, SupportedVehicle } from './initialization';
+
+type DatConfig = Record<string, Record<string, any>> ;
+
+export interface Config {
+    vehicles: { [sumoVehicleType: string]: SupportedVehicle };
+    models: { [modelName: string]: ModelParams };
+    datConfig: DatConfig;
+}
+
+export class ConfigManager {
     private gui: typeof dat.gui.GUI;
 
-    // TODO: load/save this to/from file
-    private config : Record<string, Record<string, any>>  = {
+    public config: Config;
+
+    public datConfig : DatConfig = {
         vehicle: {
             colorSpeed: { value: true },
             colorSpeedMax: { value: 15 },
@@ -18,52 +29,55 @@ export default class Config {
             buildings: { value: false },
             trafficLight: { value: true },
             trafficLightOffset: { value: 7, min: 0, max: 20 },
-        }
+        },
     }
 
     public controllers : { [category: string] :
             { [key: string] : typeof dat.gui.Controller } };
 
     constructor() {
+        this.listen = this.listen.bind(this)
+        this.loadFromFile = this.loadFromFile.bind(this)
+    }
+
+    async loadFromFile() {
+        const data = await fetch('/config.json');
+        this.config = await data.json();
+
         this.gui = new dat.gui.GUI();
 
-        for (const category in this.config) {
-            const folder = this.gui.addFolder(category);
 
-            const cat = this.config[category];
-            _.forEach(cat, (entry, key) => {
+        for (const category in this.datConfig) {
+            console.log(category)
+            const folder = this.gui.addFolder(category);
+            (this.config.datConfig ??= {})[category] = {};
+            const cat = this.config.datConfig[category];
+
+            _.forEach(this.datConfig[category], (entry, key) => {
+                // copy value from defaults
+                cat[key] = entry;
+
                 let controller = null;
-                if (_.has(entry, 'value')) {
-                    controller = folder.add(entry, 'value', entry.min, entry.max);
+                if (_.has(cat[key], 'value')) {
+                    controller = folder.add(cat[key], 'value', entry.min, entry.max);
                 } else if (_.has(entry, 'color')) {
-                    controller = folder.addColor(entry, 'color');
+                    controller = folder.addColor(cat[key], 'color');
                 }
-                controller.name(key);
                 if (controller) {
+                    controller.name(key);
                     ((this.controllers ??= {})[category] ??= {})[key] = controller;
                 }
             })
         }
     }
 
-    private hexToRgb(hex: string) {
-        const result = /^#?([a-f0-9]{2})([a-f0-9]{2})([a-f0-9]{2})$/i.exec(hex);
-        if (result) {
-            const r = parseInt(result[1], 16);
-            const g = parseInt(result[2], 16);
-            const b = parseInt(result[3], 16);
-            return [r, g, b]
-        } 
-        return [0, 0, 0];
-    }
-
     get(category: string, entry: string) {
-        const c = this.config[category][entry];
+        const c = this.config.datConfig[category][entry];
         if (_.has(c, 'value')) { return c.value }
         else if (_.has(c, 'color')) {
             let cols: number[] = [0, 0, 0];
             if (typeof c.color == 'string') {
-                cols = this.hexToRgb(c.color);
+                cols = hexToRgb(c.color);
             } else {
                 cols = c.color;
             }
@@ -81,4 +95,15 @@ export default class Config {
             this.controllers[category][entry].onChange(listener);
         }
     }
+}
+
+export function hexToRgb(hex: string) {
+    const result = /^#?([a-f0-9]{2})([a-f0-9]{2})([a-f0-9]{2})$/i.exec(hex);
+    if (result) {
+        const r = parseInt(result[1], 16);
+        const g = parseInt(result[2], 16);
+        const b = parseInt(result[3], 16);
+        return [r, g, b]
+    } 
+    return [0, 0, 0];
 }

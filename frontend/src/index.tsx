@@ -26,6 +26,7 @@ import init from './initialization';
         onFocusOnTrafficLight={store.actions.focusOnTrafficLight}
         handleSearch={store.actions.handleSearch}
         deselectSearch={store.actions.deselectSearch}
+        configManager={initResources.configManager}
       />,
       initResources.reactRootEl,
     );

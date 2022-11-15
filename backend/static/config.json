@@ -1,0 +1,51 @@
+{
+    "vehicles": {
+        "car": {
+            "label": "car",
+            "models": [
+                {
+                    "objectUrl": "/vehicles-new/clio.glb",
+                    "scale": 1.1,
+                    "offsetY": -3.0,
+                    "baseColor": "#ff0000",
+                    "baseColorPart": "Cube002_1"
+                }
+            ]
+        },
+        "ambulance": {
+            "label": "ambulance",
+            "models": [
+                {
+                    "objectUrl": "/ambulance.glb",
+                    "scale": 0.17,
+                    "offsetY": 0.5,
+                    "baseColorPart": "body_1"
+                }
+            ]
+        }
+    },
+    "models": {
+        "tree": {
+            "objectUrl": "/models/tree.glb",
+            "scale": 0.5
+        },
+        "environment": {
+            "objectUrl": "/models/osm.glb",
+            "position": {
+                "x": 550,
+                "y": 0,
+                "z": 414
+            }
+        },
+        "building": {
+            "objectUrl": "/models/flat.glb",
+            "scale": 1.0
+        },
+        "trafficLight": {
+            "objectUrl": "/models/trafficLight.glb"
+        },
+        "tlFixture": {
+            "objectUrl": "/models/tlFixture.glb"
+        }
+    }
+}

@@ -7,7 +7,7 @@ import { Signals, VehicleInfo } from './api';
 import { Model } from './initialization';
 import { Transform } from './coords';
 import { Color } from 'three';
-import Config from './config';
+import { ConfigManager, hexToRgb } from './config';
 
 // Turn/brake lights are temporarily disabled while we investigate performance issues around them.
 const SHOW_LIGHTS = false;
@@ -27,7 +27,7 @@ export default class Vehicle {
   public id: string;
   public vehicleInfo: VehicleInfo;
 
-  private static config : Config;
+  private static configManager : ConfigManager;
 
   private offsetY: number = 0.0;
 
@@ -36,7 +36,7 @@ export default class Vehicle {
 
   private customColor: boolean = false;
 
-  static setConfig(config: Config) { this.config = config; }
+  static setConfigManager(configManager: ConfigManager) { this.configManager = configManager; }
 
   static fromInfo(
     vTypeObjects: {[vType: string]: Model[]},
@@ -70,25 +70,24 @@ export default class Vehicle {
     if (info.vClass === 'passenger' && SHOW_LIGHTS) {
       this.setupLights(mesh.userData, mesh);
     }
-
-    if (!model.baseColorPart) { // model needs to specify the part (baseColorPart) that changes color
-      throw new Error('Vehicle models need to specify the baseColorPart for color changing.')
-    }
-    // TODO(Jeroen): possibly allow multiple parts
-    this.mesh.traverse(obj => { // locate that part
-      if (obj instanceof three.Mesh && _.has(obj.material, 'color') && obj.name == model.baseColorPart) {
-        // each vehicle gets it's own material instance for the part that changes color
-        obj.material = obj.material.clone();
-        // keep a reference to this material for dynamically changing the color
-        this.baseColorMaterial = obj.material;
+    
+    if (model.baseColorPart) { // model may specify the part (baseColorPart) that changes color
+      // TODO(Jeroen): possibly allow multiple parts
+      this.mesh.traverse(obj => { // locate that part
+        if (obj instanceof three.Mesh && _.has(obj.material, 'color') && obj.name == model.baseColorPart) {
+          // each vehicle gets it's own material instance for the part that changes color
+          obj.material = obj.material.clone();
+          // keep a reference to this material for dynamically changing the color
+          this.baseColorMaterial = obj.material;
+        }
+      })
+      if (info.color) { // use color in vehicle info
+        this.baseColor = this.baseColorMaterial.color = new three.Color(...info.color);
+      } else if (model.baseColor) { // ...or see if model provides a base color
+        this.baseColor = this.baseColorMaterial.color = new three.Color(...hexToRgb(model.baseColor));
+      } else { // ...or use color already on the object
+        this.baseColor = this.baseColorMaterial.color;
       }
-    })
-    if (info.color) { // use color in vehicle info
-      this.baseColor = this.baseColorMaterial.color = new three.Color(...info.color);
-    } else if (model.baseColor) { // ...or see if model provides a base color
-      this.baseColor = this.baseColorMaterial.color = model.baseColor;
-    } else { // ...or use color already on the object
-      this.baseColor = this.baseColorMaterial.color;
     }
 
     this.update.bind(this);
@@ -119,21 +118,25 @@ export default class Vehicle {
   }
 
   updateColor() {
-    if (Vehicle.config.get('vehicle', 'colorSpeed') && !this.customColor) {
-      const colorLow = new three.Color(...Vehicle.config.get('vehicle', 'colorSpeedLow'));
-      const colorHigh = new three.Color(...Vehicle.config.get('vehicle', 'colorSpeedHigh'));
-      const max = Vehicle.config.get('vehicle', 'colorSpeedMax');
-      // change color according to current speed
-      const col = new Color().lerpColors(colorLow, colorHigh, this.vehicleInfo.speed / max);
-      this.baseColorMaterial.color = col;
-    } else if (this.vehicleInfo.color && !this.customColor) { // use the provided color
-      this.baseColorMaterial.color = new three.Color(...this.vehicleInfo.color);
+    if (this.baseColorMaterial) { // else ignore
+      if (Vehicle.configManager.get('vehicle', 'colorSpeed') && !this.customColor) {
+        const colorLow = new three.Color(...Vehicle.configManager.get('vehicle', 'colorSpeedLow'));
+        const colorHigh = new three.Color(...Vehicle.configManager.get('vehicle', 'colorSpeedHigh'));
+        const max = Vehicle.configManager.get('vehicle', 'colorSpeedMax');
+        // change color according to current speed
+        const col = new Color().lerpColors(colorLow, colorHigh, this.vehicleInfo.speed / max);
+        this.baseColorMaterial.color = col;
+      } else if (this.vehicleInfo.color && !this.customColor) { // use the provided color
+        this.baseColorMaterial.color = new three.Color(...this.vehicleInfo.color);
+      }
     }
   }
 
   changeColor(color: three.Color) {
-    this.customColor = true;
-    this.baseColorMaterial.color = color;
+    if (this.baseColorMaterial) { // else ignore
+      this.customColor = true;
+      this.baseColorMaterial.color = color;
+    }
   }
 
   resetColor() {
