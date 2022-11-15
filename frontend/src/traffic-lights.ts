@@ -14,7 +14,7 @@ import {TRAFFIC_LIGHTS} from './materials';
 import {parseShape} from './sumo-utils';
 import {setMaterial} from './three-utils';
 import {forceArray} from './utils';
-import Config from './config';
+import { ConfigManager } from './config';
 
 enum Directions {
   LEFT = 'l',
@@ -27,7 +27,7 @@ enum Directions {
 }
 
 export default class TrafficLights {
-  private config: Config;
+  private configManager: ConfigManager;
   private lightObjects: {[lightId: string]: three.Object3D[]} = {};
   private lightCycles: {[programId: string]: {[lightId: string]: TlLogic}} = {};
   private currentPrograms: {[lightId: string]: string} = {};
@@ -41,16 +41,16 @@ export default class TrafficLights {
 
   private group: three.Group; /* all trafficlights */
 
-  constructor(init: InitResources, config: Config) { 
-    this.config = config;
+  constructor(init: InitResources, configManager: ConfigManager) { 
+    this.configManager = configManager;
     this.arrows = init.arrows;
     this.trafficLight = init.models.trafficLight;
 
     this.updateOffset = this.updateOffset.bind(this)
     this.loadNetwork = this.loadNetwork.bind(this)
 
-    config.listen(this.updateOffset, 'environment', 'trafficLightOffset')
-    config.listen((v: boolean) => this.group.visible = v, 'environment', 'trafficLight')
+    configManager.listen(this.updateOffset, 'environment', 'trafficLightOffset')
+    configManager.listen((v: boolean) => this.group.visible = v, 'environment', 'trafficLight')
   }
 
   loadNetwork(network: Network, t: Transform): three.Group {
@@ -164,7 +164,7 @@ export default class TrafficLights {
   }
 
   private updateOffset() {
-    const tlsOffset = this.config.get('environment', 'trafficLightOffset');
+    const tlsOffset = this.configManager.get('environment', 'trafficLightOffset');
     this.tlsGroup.position.y += tlsOffset - this.tlsOffsetPrev;
     this.arrowsGroup.position.y += tlsOffset - this.tlsOffsetPrev;
     this.tlsOffsetPrev = tlsOffset;
