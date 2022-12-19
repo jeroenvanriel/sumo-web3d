@@ -138,13 +138,13 @@ export default class TrafficLights {
       origin.add(offsetX); // move back a little
       origin.setComponent(1, 0); // set to ground
 
+      const path = new three.CurvePath<three.Vector3>();
+
       // draw vertical part
       let previous = new three.Vector3(0, poleHeight, 0).add(origin);
-      const vertical = new three.LineCurve3(origin, previous);
-      this.tubesGroup.add(createTube(vertical));
-
+      path.add(new three.LineCurve3(origin, previous));
+    
       // draw horizontal parts
-      const path = new three.CurvePath<three.Vector3>();
       _.forEach(tlLocations, location => {
         location.add(offsetX);
         path.add(new three.LineCurve3(previous, location));
