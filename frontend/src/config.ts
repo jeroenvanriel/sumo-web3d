@@ -24,7 +24,7 @@ export class ConfigManager {
         this.loadFromFile = this.loadFromFile.bind(this)
 
         this.gui = new GUI();
-        this.gui.add(this, 'saveToFile');
+        this.gui.add(this, 'saveToFile').name('save');
     }
 
     async loadFromFile() {
