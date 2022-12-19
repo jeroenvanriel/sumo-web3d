@@ -116,7 +116,7 @@ export default class Sumo3D {
 
     this.scene = new three.Scene();
 
-    this.camera = new three.PerspectiveCamera(75, width / height, 1, 20000);
+    this.camera = new three.PerspectiveCamera(75, width / height, 0.1, 20000);
     let [centerX, centerZ] = this.transform.xyToXz(this.transform.center());
     let initZoom = 200;
     if (init.settings && init.settings.viewsettings.viewport) {
