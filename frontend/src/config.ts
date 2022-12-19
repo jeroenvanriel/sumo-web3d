@@ -1,63 +1,43 @@
 import * as _ from 'lodash';
-import * as dat from 'dat.gui/build/dat.gui.js';
+import { GUI, Controller } from 'lil-gui';
 
 import { ModelParams, SupportedVehicle } from './initialization';
 
-type DatConfig = Record<string, Record<string, any>> ;
+type GuiConfig = Record<string, Record<string, any>> ;
 
 export interface Config {
     vehicles: { [sumoVehicleType: string]: SupportedVehicle };
     models: { [modelName: string]: ModelParams };
-    datConfig: DatConfig;
+    guiConfig: GuiConfig;
 }
 
 export class ConfigManager {
-    private gui: typeof dat.gui.GUI;
+    private gui: GUI;
 
     public config: Config;
 
-    public datConfig : DatConfig = {
-        vehicle: {
-            colorSpeed: { value: true },
-            colorSpeedMax: { value: 15 },
-            colorSpeedLow: { color: [255, 0, 0] },
-            colorSpeedHigh: { color: [0, 255, 0] },
-        },
-        environment: {
-            groundPlane: { value: true },
-            trees: { value: true },
-            buildings: { value: false },
-            trafficLight: { value: true },
-            trafficLightOffset: { value: 7, min: 0, max: 20 },
-        },
-    }
-
     public controllers : { [category: string] :
-            { [key: string] : typeof dat.gui.Controller } };
+            { [key: string] : Controller } };
 
     constructor() {
         this.listen = this.listen.bind(this)
         this.loadFromFile = this.loadFromFile.bind(this)
+
+        this.gui = new GUI();
+        this.gui.add(this, 'saveToFile');
     }
 
     async loadFromFile() {
-        const data = await fetch('/config.json');
+        const data = await fetch('/config');
         this.config = await data.json();
 
-        this.gui = new dat.gui.GUI();
-
-
-        for (const category in this.datConfig) {
+        for (const category in this.config.guiConfig) {
             const folder = this.gui.addFolder(category);
-            (this.config.datConfig ??= {})[category] = {};
-            const cat = this.config.datConfig[category];
+            const cat = this.config.guiConfig[category];
 
-            _.forEach(this.datConfig[category], (entry, key) => {
-                // copy value from defaults
-                cat[key] = entry;
-
+            _.forEach(cat, (entry, key) => {
                 let controller = null;
-                if (_.has(cat[key], 'value')) {
+                if (_.has(entry, 'value')) {
                     controller = folder.add(cat[key], 'value', entry.min, entry.max);
                 } else if (_.has(entry, 'color')) {
                     controller = folder.addColor(cat[key], 'color');
@@ -70,8 +50,17 @@ export class ConfigManager {
         }
     }
 
+    async saveToFile() {
+        const options = {
+            method: 'POST',
+            body: JSON.stringify(this.config),
+            headers: { 'Content-Type': 'applications/json' }
+        }
+        fetch('/config', options)
+    }
+
     get(category: string, entry: string) {
-        const c = this.config.datConfig[category][entry];
+        const c = this.config.guiConfig[category][entry];
         if (_.has(c, 'value')) { return c.value }
         else if (_.has(c, 'color')) {
             let cols: number[] = [0, 0, 0];
@@ -87,11 +76,16 @@ export class ConfigManager {
 
     listen(listener: Function, category: string, entry: string = '') {
         if (entry == '') {
+            // listen to all controllers in this folder
             _.forEach(this.controllers[category], (controller, key) => {
                 controller.onChange(listener);
+                listener(controller.getValue());
             });
         } else {
-            this.controllers[category][entry].onChange(listener);
+            // listen to a single controller
+            const controller = this.controllers[category][entry];
+            controller.onChange(listener);
+            listener(controller.getValue());
         }
     }
 }

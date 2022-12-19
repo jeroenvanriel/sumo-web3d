@@ -529,6 +529,19 @@ def get_default_scenario_name(scenarios):
     return defaults[0]
 
 
+def read_config(request):
+    with open(os.path.join(DIR, 'static', 'config.json'), 'r') as infile:
+        data = json.load(infile)
+        return web.json_response(data)
+
+
+async def write_config(request):
+    data = await request.json()
+    with open(os.path.join(DIR, 'static', 'config.json'), 'w') as outfile:
+        outfile.write(json.dumps(data))
+    return web.Response(status=201)
+
+
 def setup_http_server(scenario_file, scenarios):
     app = web.Application()
 
@@ -571,6 +584,9 @@ def setup_http_server(scenario_file, scenarios):
     # app.router.add_get('/vehicle_route', vehicle_route_http_response)
     app.router.add_get('/', lambda req: web.HTTPFound(
         '/scenarios/%s/' % default_scenario_name, headers=NO_CACHE_HEADER))
+    
+    app.router.add_get('/config', read_config)
+    app.router.add_post('/config', write_config)
 
     return app
 

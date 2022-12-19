@@ -48,9 +48,6 @@ export default class TrafficLights {
 
     this.updateOffset = this.updateOffset.bind(this)
     this.loadNetwork = this.loadNetwork.bind(this)
-
-    configManager.listen(this.updateOffset, 'environment', 'trafficLightOffset')
-    configManager.listen((v: boolean) => this.group.visible = v, 'environment', 'trafficLight')
   }
 
   loadNetwork(network: Network, t: Transform): three.Group {
@@ -156,10 +153,11 @@ export default class TrafficLights {
       this.tubesGroup.add(createTube(path));
     });
 
-    // set initial offset
-    this.updateOffset();
-
     this.group = new three.Group().add(this.tlsGroup).add(this.tubesGroup).add(this.arrowsGroup);
+
+    this.configManager.listen(this.updateOffset, 'environment', 'trafficLightOffset')
+    this.configManager.listen((v: boolean) => this.group.visible = v, 'environment', 'trafficLight')
+
     return this.group;
   }
 
