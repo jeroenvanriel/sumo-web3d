@@ -48,7 +48,6 @@ export class ConfigManager {
 
 
         for (const category in this.datConfig) {
-            console.log(category)
             const folder = this.gui.addFolder(category);
             (this.config.datConfig ??= {})[category] = {};
             const cat = this.config.datConfig[category];
