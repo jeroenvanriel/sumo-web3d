@@ -122,6 +122,7 @@ export default class TrafficLights {
       function createTube(path: three.Curve<three.Vector3>) {
         const geometry = new three.TubeGeometry( path, 30, 0.15, 8, false );
         const material = new three.MeshBasicMaterial( { color: 0x111111 } );
+        material.color.convertSRGBToLinear();
         return new three.Mesh( geometry, material );
       }
 

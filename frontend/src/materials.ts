@@ -15,10 +15,12 @@ const railroadTie = loadRepeatedTexture('/rail64.png');
 const sidewalkTexture = loadRepeatedTexture('/sidewalk256.jpg');
 const asphaltTexture = loadRepeatedTexture('/asphalt256.jpg');
 const asphaltTexture2 = loadRepeatedTexture('/asphalt.png');
+asphaltTexture2.encoding = three.sRGBEncoding;
 const crossingTexture = loadRepeatedTexture('/zebra.jpg');
 // const grassTexture = loadRepeatedTexture('/grass/GrassGreenTexture0001.jpg')
 const grassTexture = loadRepeatedTexture('/grass/grass.jpg')
 grassTexture.repeat.set(0.1,0.1);
+grassTexture.encoding = three.sRGBEncoding;
 
 export const LAND = new three.MeshPhysicalMaterial({
   map: grassTexture,
@@ -343,14 +345,14 @@ export const ROAD = function() {
       gl_FragColor = mix( texture2D(roadTexture, vPos / 10.0), black, 0.2);
 
       // global noise
-      float scale = 0.04;
-      float factor = 0.001 * cnoise(vec3(vPos.x * scale, vPos.y * scale, 0.0));
-      gl_FragColor = mix( gl_FragColor, white, factor );
+      // float scale = 0.04;
+      // float factor = 0.001 * cnoise(vec3(vPos.x * scale, vPos.y * scale, 0.0));
+      // gl_FragColor = mix( gl_FragColor, white, factor );
 
       // local lane noise
-      factor = 0.15 * cnoise(vec3(vUv.y, vUv.y, vPos.x / 100.0 + vPos.y / 100.0));
-      float mask = 1.0 - (16.0 * (0.5 - vUv.x) * (0.5 - vUv.x) * (0.5 - vUv.x) * (0.5 - vUv.x));
-      gl_FragColor = mix( gl_FragColor, white, factor * mask );
+      // factor = 0.15 * cnoise(vec3(vUv.y, vUv.y, vPos.x / 100.0 + vPos.y / 100.0));
+      // float mask = 1.0 - (16.0 * (0.5 - vUv.x) * (0.5 - vUv.x) * (0.5 - vUv.x) * (0.5 - vUv.x));
+      // gl_FragColor = mix( gl_FragColor, white, factor * mask );
 
       // striping
       // if (abs(vUv.y) < 0.1) {
@@ -434,9 +436,9 @@ export const JUNCTION = function() {
       gl_FragColor = mix( texture2D(roadTexture, vPos / 10.0), black, 0.2);
 
       // global noise
-      float scale = 0.04;
-      float factor = 0.05 * cnoise(vec3(vPos.x * scale, vPos.y * scale, 0.0));
-      gl_FragColor = mix( gl_FragColor, white, factor );
+      // float scale = 0.04;
+      // float factor = 0.05 * cnoise(vec3(vPos.x * scale, vPos.y * scale, 0.0));
+      // gl_FragColor = mix( gl_FragColor, white, factor );
 
       // shadow
       gl_FragColor = mix( gl_FragColor, black, 1.0 - getShadowMask());

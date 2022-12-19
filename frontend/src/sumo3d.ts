@@ -113,6 +113,7 @@ export default class Sumo3D {
     this.renderer.domElement.oncontextmenu = (e: PointerEvent) => false;
     this.renderer.domElement.tabIndex = 1;
     this.renderer.setSize(width, height);
+    this.renderer.outputEncoding = three.sRGBEncoding;
 
     this.scene = new three.Scene();
 
