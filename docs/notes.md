@@ -73,3 +73,7 @@ Compare this to `cap='butt'`, which gives:
 However, it may also produce situations like:
 
 ![cap='butt' bad example](figures/2022-03-14-18-00-02.png)
+
+## Shadow bug
+
+![](figures/shadow_bug.png)
