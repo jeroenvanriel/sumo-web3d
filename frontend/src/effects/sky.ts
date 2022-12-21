@@ -20,7 +20,7 @@ const LIGHT_WIDTH = 100;
 const AMBIENT_LIGHT_COLOR = 0xffffff;
 const DIRECTIONAL_LIGHT_COLOR = 0xffffff;
 
-const CUBE_DIR = '/sky/';
+const CUBE_DIR = '/textures/sky/';
 const CUBE_FILES = [
   'TropicalSunnyDayLeft2048.png',
   'TropicalSunnyDayRight2048.png',
