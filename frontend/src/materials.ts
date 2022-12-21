@@ -11,14 +11,14 @@ const loadRepeatedTexture = (url: string) =>
     texture.wrapS = texture.wrapT = three.RepeatWrapping;
   });
 
-const railroadTie = loadRepeatedTexture('/rail64.png');
-const sidewalkTexture = loadRepeatedTexture('/sidewalk256.jpg');
-const asphaltTexture = loadRepeatedTexture('/asphalt256.jpg');
-const asphaltTexture2 = loadRepeatedTexture('/asphalt.png');
+const railroadTie = loadRepeatedTexture('/textures/rail64.png');
+const sidewalkTexture = loadRepeatedTexture('/textures/sidewalk256.jpg');
+const asphaltTexture = loadRepeatedTexture('/textures/asphalt256.jpg');
+const asphaltTexture2 = loadRepeatedTexture('/textures/asphalt.png');
 asphaltTexture2.encoding = three.sRGBEncoding;
-const crossingTexture = loadRepeatedTexture('/zebra.jpg');
+const crossingTexture = loadRepeatedTexture('/textures/zebra.jpg');
 // const grassTexture = loadRepeatedTexture('/grass/GrassGreenTexture0001.jpg')
-const grassTexture = loadRepeatedTexture('/grass/grass.jpg')
+const grassTexture = loadRepeatedTexture('/textures/grass/grass.jpg')
 grassTexture.repeat.set(0.1,0.1);
 grassTexture.encoding = three.sRGBEncoding;
 
