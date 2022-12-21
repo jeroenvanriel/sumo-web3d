@@ -13,6 +13,8 @@ The GitHub [workflow](https://github.com/jeroenvanriel/sumo-web3d/actions/workfl
 The frontend Javascript/Typescript code is build using [Webpack](webpack.js.org), which is configured to output a single `index.bundle.js` file in the `backend/static/` folder.
 This is also the location where the backend executable expects to find this bundle in order to serve it to a requesting client.
 
+To manually build frontend, use `yarn webpack`.
+
 It would be nice if frontend building is also automated in a GitHub workflow.
 
 ## Folder structure
