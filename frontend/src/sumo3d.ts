@@ -4,8 +4,6 @@ import * as Stats from 'stats.js';
 import * as three from 'three';
 
 import {LaneMap, LightInfo, SimulationState, VehicleInfo} from './api';
-import {MapControls, OrbitControls} from 'three/examples/jsm/controls/OrbitControls';
-import {TrackballControls} from 'three/examples/jsm/controls/TrackballControls';
 import {getTransforms, LatLng, Transform} from './coords';
 import Postprocessing, {FOG_RATE} from './effects/postprocessing';
 import {addSkybox, addLights} from './effects/sky';
@@ -13,11 +11,11 @@ import {InitResources, Model} from './initialization';
 import {HIGHLIGHT} from './materials';
 import { makeStaticObjects, MeshAndPosition, OsmIdToMesh } from './network';
 import { getLines } from './lines';
-import {pointCameraAtScene} from './scene-finder';
 import TrafficLights from './traffic-lights';
 import {forceArray} from './utils';
 import Vehicle from './vehicle';
 import { ConfigManager } from './config';
+import { CameraManager } from './camera';
 
 const {hostname} = window.location;
 export const SUMO_ENDPOINT = `http://${hostname}:5000`;
@@ -69,6 +67,7 @@ export default class Sumo3D {
 
   public osmIdToMeshes: OsmIdToMesh;
   private configManager: ConfigManager;
+  private cameraManager: CameraManager;
   private laneMaterials: { [laneId: string]: three.ShaderMaterial };
   private lanemap: LaneMap | null;
   private transform: Transform;
@@ -76,8 +75,6 @@ export default class Sumo3D {
   private camera: three.PerspectiveCamera;
   private scene: three.Scene;
   private renderer: three.WebGLRenderer;
-  private controls_move: OrbitControls;
-  private controls_zoom: TrackballControls;
   private following: three.Object3D | null;
   public simulationState: SimulationState;
   private vTypeModels: {[vehicleType: string]: Model[]};
@@ -115,24 +112,36 @@ export default class Sumo3D {
     this.renderer.setSize(width, height);
     this.renderer.outputEncoding = three.sRGBEncoding;
 
-    this.scene = new three.Scene();
+    this.configManager = init.configManager;
 
-    this.camera = new three.PerspectiveCamera(75, width / height, 0.1, 20000);
+    this.scene = new three.Scene();
     let [centerX, centerZ] = this.transform.xyToXz(this.transform.center());
-    let initZoom = 200;
-    if (init.settings && init.settings.viewsettings.viewport) {
-      const {x, y, zoom} = init.settings.viewsettings.viewport;
-      console.log('Focusing on ', x, y);
-      [centerX, centerZ] = this.transform.xyToXz([Number(x), Number(y)]);
-      if (zoom) initZoom = Number(zoom);
+
+    const fov = 75;
+    const near = 0.1;
+    const far = 20000
+    this.camera = new three.PerspectiveCamera(fov, width / height, near, far);
+    this.cameraManager = new CameraManager(this.camera, this.configManager, this.renderer.domElement);
+    if (! this.cameraManager.loadFromFile()) {
+      // set initial camera position procedurally, if not given in config
+
+      // old code for loading from sumo configuration file
+      // if (init.settings && init.settings.viewsettings.viewport) {
+      //     const {x, y, zoom} = init.settings.viewsettings.viewport;
+      //     console.log('Focusing on ', x, y);
+      //     [centerX, centerZ] = this.transform.xyToXz([Number(x), Number(y)]);
+      //     if (zoom) initZoom = Number(zoom);
+      // }
+
+      const maxInitY = 0.5 / FOG_RATE; // beyond this, you can't see anything.
+      const initZoom = 200;
+      // distance at which whole scene is visible, see https://stackoverflow.com/a/31777283/388951.
+      const initY = Math.min(
+          this.transform.width() * 100 / initZoom / (2 * Math.tan(fov * Math.PI / 360)),
+          maxInitY,
+      );
+      this.camera.position.set(centerX, initY, centerZ);
     }
-    const maxInitY = 0.5 / FOG_RATE; // beyond this, you can't see anything.
-    // Distance at which whole scene is visible, see https://stackoverflow.com/a/31777283/388951.
-    const initY = Math.min(
-      this.transform.width() * 100 / initZoom / (2 * Math.tan(this.camera.fov * Math.PI / 360)),
-      maxInitY,
-    );
-    this.camera.position.set(centerX, initY, centerZ);
 
     this.postprocessing = new Postprocessing(
       this.camera,
@@ -146,8 +155,6 @@ export default class Sumo3D {
 
     addSkybox(this.scene, centerX, centerZ);
     addLights(this.scene, centerX, centerZ);
-
-    this.configManager = init.configManager;
 
     this.updateVehicleColors = this.updateVehicleColors.bind(this);
     init.configManager.listen(this.updateVehicleColors, 'vehicle')
@@ -178,8 +185,6 @@ export default class Sumo3D {
       });
     });
 
-    pointCameraAtScene(this.camera, this.scene);
-
     this.scene.add(this.trafficLights.loadNetwork(init.network, this.transform));
     this.trafficLights.addLogic(forceArray(init.network.net.tlLogic));
     if (init.additional && init.additional.tlLogic) {
@@ -198,23 +203,6 @@ export default class Sumo3D {
     this.moveCameraToRandomVehicleOfType = this.moveCameraToRandomVehicleOfType.bind(this);
 
     parentElement.appendChild(this.renderer.domElement);
-
-    this.controls_move = new MapControls(this.camera, this.renderer.domElement);
-    this.controls_move.enableDamping = true;
-    this.controls_move.dampingFactor = 0.05;
-    this.controls_move.screenSpacePanning = false;
-    this.controls_move.enableZoom = false;
-    this.controls_move.rotateSpeed = 0.5;
-    this.controls_move.maxPolarAngle = 0.495 * Math.PI;
-    
-    this.controls_zoom = new TrackballControls(this.camera, this.renderer.domElement);
-    this.controls_zoom.noRotate = true;
-    this.controls_zoom.noPan = true;
-    this.controls_zoom.noZoom = false;
-    this.controls_zoom.zoomSpeed = 0.4;
-    this.controls_zoom.dynamicDampingFactor = 0.05; // set dampening factor
-    this.controls_zoom.minDistance = 10;
-    this.controls_zoom.maxDistance = 1000;
 
     this.stats = new Stats();
     this.simTimePanel = this.stats.addPanel(new Stats.Panel('simMs', '#fff', '#777'));
@@ -306,19 +294,7 @@ export default class Sumo3D {
   }
 
   animate() {
-    let target = new three.Vector3();
-    if (this.following) {
-      this.following.getWorldPosition(target);
-      this.controls_move.enablePan = false;
-      this.controls_move.target.copy(target);
-      this.controls_move.update();
-    } else {
-      this.controls_move.enablePan = true;
-      this.controls_move.update();
-      target = this.controls_move.target;
-    }
-    this.controls_zoom.target.set(target.x, target.y, target.z);
-    this.controls_zoom.update();
+    this.cameraManager.update(this.following);
 
     this.postprocessing.render();
     this.stats.update();
@@ -363,8 +339,7 @@ export default class Sumo3D {
     // move the camera controls center of rotation to this point
     if (!this.following) {
       const [x, y, z] = this.transform.sumoXyzToXyz([sumoX, sumoY, sumoZ]);
-      this.controls_move.target = new three.Vector3(x, y, z);
-      this.controls_move.update();
+      this.cameraManager.focus(new three.Vector3(x, y, z));
     }
   }
 

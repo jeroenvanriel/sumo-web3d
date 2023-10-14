@@ -1,5 +1,6 @@
 import * as _ from 'lodash';
 import { GUI, Controller } from 'lil-gui';
+import { CameraSetpoint } from './camera';
 
 import { ModelParams, SupportedVehicle } from './initialization';
 
@@ -9,10 +10,11 @@ export interface Config {
     vehicles: { [sumoVehicleType: string]: SupportedVehicle };
     models: { [modelName: string]: ModelParams };
     guiConfig: GuiConfig;
+    initialCameraSetpoint: CameraSetpoint;
 }
 
 export class ConfigManager {
-    private gui: GUI;
+    public gui: GUI;
 
     public config: Config;
 
